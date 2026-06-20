@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de l'été 2026</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --accent:#2563eb; --accent-ink:#fff;
+    --afaire:#64748b; --encours:#d97706; --fait:#16a34a; --jalon:#7c3aed;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+  header{position:sticky;top:0;z-index:10;background:var(--accent);color:#fff;padding:14px 16px 0}
+  header h1{margin:0;font-size:18px;font-weight:700}
+  header .sub{font-size:12px;opacity:.85;margin-top:2px}
+  nav{display:flex;gap:4px;margin-top:12px;overflow-x:auto}
+  nav button{flex:0 0 auto;background:transparent;border:0;color:#fff;opacity:.7;padding:10px 12px;font-size:14px;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
+  nav button.active{opacity:1;border-color:#fff}
+  main{padding:14px;max-width:760px;margin:0 auto}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  select,input,textarea,button{font:inherit}
+  select,input[type=text],input[type=date],textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
+  .toolbar select,.toolbar input{width:auto;flex:1 1 130px;min-width:120px}
+  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+  .btn.sm{padding:5px 10px;font-size:13px;border-radius:7px}
+  .muted{color:var(--muted)}
+  .count{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff;white-space:nowrap}
+  .action{font-weight:600;margin:6px 0 4px}
+  .meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px}
+  .meta b{color:var(--ink);font-weight:600}
+  .statusrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+  .stbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+  .stbtn.on{color:#fff;border-color:transparent}
+  .relais{margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px}
+  .relais label{font-size:11px;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:.03em}
+  .relais textarea{margin-top:4px;background:#fff;min-height:38px;resize:vertical}
+  .progress{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin:8px 0}
+  .progress > div{height:100%;background:var(--fait)}
+  /* Assistant */
+  #chat{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+  .msg{padding:10px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap}
+  .msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
+  .msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;background:#fef9c3;border:1px solid #fde68a;font-size:13px;color:#854d0e;text-align:center}
+  .composer{display:flex;gap:8px}
+  .composer input{flex:1}
+  .quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .quick button{font-size:12px}
+  details.settings{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}
+  details.settings summary{cursor:pointer;font-weight:600}
+  .field{margin-top:8px}
+  .field label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
+  .footer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+  dialog{border:0;border-radius:14px;padding:0;max-width:480px;width:92%}
+  dialog .dlg{padding:16px}
+  dialog h3{margin:0 0 10px}
+  .hidden{display:none!important}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 Suivi de l'été 2026</h1>
+  <div class="sub" id="periode"></div>
+  <nav>
+    <button data-tab="taches" class="active">Tâches</button>
+    <button data-tab="chantiers">Chantiers</button>
+    <button data-tab="conges">Congés</button>
+    <button data-tab="assistant">Assistant</button>
+  </nav>
+</header>
+<main>
+
+  <!-- TÂCHES -->
+  <section id="tab-taches">
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Rechercher…">
+      <select id="f-site"></select>
+      <select id="f-statut"></select>
+      <select id="f-pilote"></select>
+    </div>
+    <div class="count" id="taches-count"></div>
+    <div id="taches-list"></div>
+    <button class="btn ghost" id="add-tache" style="width:100%">+ Ajouter une tâche</button>
+  </section>
+
+  <!-- CHANTIERS -->
+  <section id="tab-chantiers" class="hidden">
+    <div id="chantiers-list"></div>
+  </section>
+
+  <!-- CONGÉS -->
+  <section id="tab-conges" class="hidden">
+    <div class="count">Qui est absent, et quand. (Données limitées au nécessaire.)</div>
+    <div id="conges-list"></div>
+    <button class="btn ghost" id="add-conge" style="width:100%">+ Ajouter un congé</button>
+  </section>
+
+  <!-- ASSISTANT -->
+  <section id="tab-assistant" class="hidden">
+    <details class="settings" id="ai-settings">
+      <summary>⚙️ Réglages de l'assistant (OpenRouter)</summary>
+      <div class="field">
+        <label>Clé OpenRouter (stockée uniquement sur cet appareil)</label>
+        <input type="text" id="or-key" placeholder="sk-or-…">
+      </div>
+      <div class="field">
+        <label>Modèle</label>
+        <input type="text" id="or-model" placeholder="anthropic/claude-3.5-sonnet">
+      </div>
+      <div class="field"><button class="btn sm" id="save-settings">Enregistrer</button></div>
+    </details>
+    <div class="quick">
+      <button class="btn ghost sm" data-q="Fais-moi un récap de ce qui a été fait et de ce qui reste à faire.">Récap fait / à faire</button>
+      <button class="btn ghost sm" data-q="Quelles sont les tâches prioritaires des 2 prochaines semaines ?">Prochaines priorités</button>
+      <button class="btn ghost sm" data-q="Où en est le nouveau centre Atelier des loisirs ?">État Atelier des loisirs</button>
+      <button class="btn ghost sm" data-q="Y a-t-il des consignes de relais ou des points en suspens à traiter ?">Consignes & points en suspens</button>
+    </div>
+    <div id="chat"></div>
+    <div class="composer">
+      <input type="text" id="chat-input" placeholder="Pose ta question…">
+      <button class="btn" id="chat-send">Envoyer</button>
+    </div>
+  </section>
+
+  <div class="footer-actions">
+    <button class="btn ghost sm" id="export">⬇️ Exporter (sauvegarde)</button>
+    <button class="btn ghost sm" id="import">⬆️ Importer</button>
+    <button class="btn ghost sm" id="reset">♻️ Réinitialiser</button>
+    <input type="file" id="import-file" accept="application/json" class="hidden">
+  </div>
+</main>
+
+<!-- Dialog édition tâche -->
+<dialog id="dlg-tache"><form method="dialog" class="dlg">
+  <h3 id="dlg-title">Tâche</h3>
+  <div class="field"><label>Site / chantier</label><input type="text" id="t-site"></div>
+  <div class="field"><label>Action</label><input type="text" id="t-action"></div>
+  <div class="field"><label>Pilote</label><input type="text" id="t-pilote"></div>
+  <div class="field"><label>Équipe / acteurs</label><input type="text" id="t-equipe"></div>
+  <div class="field"><label>Début</label><input type="date" id="t-debut"></div>
+  <div class="field"><label>Fin</label><input type="date" id="t-fin"></div>
+  <div class="field"><label>Priorité</label><select id="t-priorite"></select></div>
+  <div class="footer-actions" style="border:0;margin-top:14px">
+    <button class="btn" id="t-save" value="save">Enregistrer</button>
+    <button class="btn ghost" value="cancel">Annuler</button>
+    <button class="btn ghost" id="t-delete" value="delete" style="margin-left:auto;color:#dc2626;border-color:#dc2626">Supprimer</button>
+  </div>
+</form></dialog>
+
+<!-- Dialog congé -->
+<dialog id="dlg-conge"><form method="dialog" class="dlg">
+  <h3>Congé</h3>
+  <div class="field"><label>Personne</label><input type="text" id="c-personne"></div>
+  <div class="field"><label>Du</label><input type="date" id="c-du"></div>
+  <div class="field"><label>Au</label><input type="date" id="c-au"></div>
+  <div class="field"><label>Remplaçant·e</label><input type="text" id="c-remplacant"></div>
+  <div class="field"><label>Remarque</label><input type="text" id="c-remarque"></div>
+  <div class="footer-actions" style="border:0;margin-top:14px">
+    <button class="btn" value="save">Enregistrer</button>
+    <button class="btn ghost" value="cancel">Annuler</button>
+    <button class="btn ghost" id="c-delete" value="delete" style="margin-left:auto;color:#dc2626;border-color:#dc2626">Supprimer</button>
+  </div>
+</form></dialog>
+
+<script>
+const SEED = {"meta": {"titre": "Suivi de l'été 2026", "periode": "6 juin → 1er septembre 2026", "source": "Gantt croisé été 2026"}, "statuts": ["À faire", "En cours", "Fait", "Jalon"], "priorites": ["Faible", "Moyenne", "Haute", "Critique"], "services": ["Équipe manut renforcée", "Équipe HR", "Enfance", "EN + ATSEM", "Patrimoine + entreprise", "Fournisseur", "DSI / VPI-TNI"], "chantiers": [{"nom": "Haute-Futaie", "nb": 4, "debut": "2026-06-06", "fin": "2026-07-24", "couleur": "#334155"}, {"nom": "Malmedonne", "nb": 16, "debut": "2026-06-06", "fin": "2026-08-31", "couleur": "#2563eb"}, {"nom": "CLP", "nb": 3, "debut": "2026-06-24", "fin": "2026-07-06", "couleur": "#ea580c"}, {"nom": "CAP Chapiteau", "nb": 1, "debut": "2026-06-06", "fin": "2026-07-09", "couleur": "#334155"}, {"nom": "CAP La Tour", "nb": 1, "debut": "2026-06-06", "fin": "2026-07-09", "couleur": "#334155"}, {"nom": "Atelier des loisirs", "nb": 6, "debut": "2026-07-16", "fin": "2026-09-01", "couleur": "#7c3aed"}, {"nom": "Bessières", "nb": 3, "debut": "2026-06-29", "fin": "2026-08-28", "couleur": "#ca8a04"}], "taches": [{"id": "T-001", "site": "Haute-Futaie", "action": "Préparation cartons + tri", "pilote": "L. Gé  HF", "equipe": "EN + ATSEM", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-002", "site": "Haute-Futaie", "action": "Déménagement cartons + mobilier vers RDC Malmedonne", "pilote": "S. Barbedette +A, Dem", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-003", "site": "Haute-Futaie", "action": "Déménagement mobilier vers autres écoles", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-004", "site": "Haute-Futaie", "action": "Transfert mobilier + matériel vers déchèterie", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-005", "site": "Malmedonne", "action": "Préparation cartons + tri", "pilote": "L. Gé / D. Ikhelf", "equipe": "EN + Anim + A. Dem", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-006", "site": "Malmedonne", "action": "Transfert mobilier + matériel vers déchèterie", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-007", "site": "Malmedonne", "action": "Déménagement cartons vers salle polyvalente bâtiment 2", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-008", "site": "Malmedonne", "action": "Vider salles du CAP et salle de classe", "pilote": "S. Barbedette + A. DEM", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-009", "site": "Malmedonne", "action": "Préparation pièces pour travaux", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-010", "site": "Malmedonne", "action": "Travaux", "pilote": "Z. El Krimy / B. Domingues", "equipe": "Patrimoine + entreprise", "debut": "2026-07-15", "fin": "2026-08-07", "duree": 24, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-011", "site": "Malmedonne", "action": "Ménage post-travaux", "pilote": "C. Labouise", "equipe": "ESSI + équipe HR", "debut": "2026-08-10", "fin": "2026-08-13", "duree": 4, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-012", "site": "Malmedonne", "action": "Déplacement VPI/TNI et réinstallation du mobilier neuf", "pilote": "J. Matrat / L. Genet", "equipe": "Entreprise + équipe manut renforcée", "debut": "2026-08-12", "fin": "2026-08-17", "duree": 6, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-013", "site": "Malmedonne", "action": "Déménagement des cartons dans les salles de destination", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-08-18", "fin": "2026-08-21", "duree": 4, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-014", "site": "Malmedonne", "action": "Livraison DPC pour trois classes neuves", "pilote": "L. Gé", "equipe": "L. Gé", "debut": "2026-08-17", "fin": "2026-08-17", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-015", "site": "Malmedonne", "action": "Installation des classes, aménagement", "pilote": "L. GE / directions écoles", "equipe": "EN + ATSEM", "debut": "2026-08-24", "fin": "2026-08-25", "duree": 2, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-016", "site": "Malmedonne", "action": "Rangement du matériel transféré depuis l'office Haute-Futaie", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-26", "fin": "2026-08-28", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-017", "site": "Malmedonne", "action": "Aménagement des différents espaces CLM", "pilote": "D. Ikhelf + A. Dem", "equipe": "Enfance", "debut": "2026-08-26", "fin": "2026-08-31", "duree": 6, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-018", "site": "Malmedonne", "action": "Ménage final", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-29", "fin": "2026-08-31", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-019", "site": "Malmedonne", "action": "Remise de clés et transpondeur nouvelle équipe avec installation nouvelle serrure sur porte cassée", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-29", "fin": "2026-08-31", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-020", "site": "Malmedonne", "action": "Visite aux parents d'élèves élus 9h-10h", "pilote": "Y. Kerauffret + D. Ikhelf", "equipe": "YK", "debut": "2026-08-28", "fin": "2026-08-28", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-021", "site": "CLP", "action": "Préparation des cartons et inventaire CLP", "pilote": "D. Ikhelf + M. Kerchouche", "equipe": "Enfance + équipe CLP", "debut": "2026-06-24", "fin": "2026-07-03", "duree": 10, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-022", "site": "CLP", "action": "Fermeture opérationnelle du CLP", "pilote": "D. Ikhelf", "equipe": "Enfance", "debut": "2026-07-06", "fin": "2026-07-06", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-023", "site": "CLP", "action": "Déménagement CLP vers Atelier des loisirs", "pilote": "S. Barbedette", "equipe": "Équipe logistique + Enfance (anims)", "debut": null, "fin": null, "duree": null, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-024", "site": "CAP Chapiteau", "action": "Préparation cartons + tri", "pilote": "D. Ikhelf A. Dem", "equipe": "équipe anim", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "Pendant les vacances en automie équipes", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-025", "site": "CAP La Tour", "action": "Préparation cartons + tri", "pilote": "D. Ikhelf A. Dem", "equipe": "équipe anim", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "Pendant les vacances en automie équipes", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-026", "site": "Atelier des loisirs", "action": "Préparation des espaces d'accueil", "pilote": "À compléter", "equipe": "Enfance + bâtiments", "debut": "2026-07-16", "fin": "2026-07-23", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-027", "site": "Atelier des loisirs", "action": "Livraison, Montage, implantation et contrôle mobilier", "pilote": "Y. Kerauffret", "equipe": "YK + DPC", "debut": "2026-07-24", "fin": "2026-07-31", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-028", "site": "Atelier des loisirs", "action": "Nettoyage et remise en état avant reprise", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-17", "fin": "2026-08-21", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-029", "site": "Atelier des loisirs", "action": "Préparation pédagogique et installation fin d'été", "pilote": "D. Ikhelf M. Kerchouche", "equipe": "Équipe Enfance", "debut": "2026-08-24", "fin": "2026-08-31", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-030", "site": "Atelier des loisirs", "action": "Comission Sécurité", "pilote": "Y. Kerauffret", "equipe": "YK", "debut": "2026-09-01", "fin": "2026-09-01", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-031", "site": "Atelier des loisirs", "action": "Inauguration le 12 septembre", "pilote": "À compléter", "equipe": "Cabinet + communication + Enfance", "debut": "2026-09-01", "fin": "2026-09-01", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-032", "site": "Bessières", "action": "Identifier local, mobilier à déplacer et besoins matériels", "pilote": "À compléter", "equipe": "Éducation + direction école", "debut": "2026-06-29", "fin": "2026-07-03", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-033", "site": "Bessières", "action": "Déplacements internes et installation mobilier", "pilote": "À compléter", "equipe": "Logistique + école", "debut": "2026-07-06", "fin": "2026-07-10", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-034", "site": "Bessières", "action": "Ménage et vérification ouverture classe", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-24", "fin": "2026-08-28", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}], "conges": [{"personne": "(exemple) Sophie B.", "du": "2026-07-20", "au": "2026-08-10", "remplacant": "Marc", "remarque": "Joindre en cas d'urgence livraison"}]};
+const STORE_KEY = 'suivi_ete_2026';
+const STATUS_COLORS = {'À faire':'var(--afaire)','En cours':'var(--encours)','Fait':'var(--fait)','Jalon':'var(--jalon)'};
+
+let state = load();
+function load(){
+  try{const s=localStorage.getItem(STORE_KEY); if(s) return JSON.parse(s);}catch(e){}
+  return structuredClone(SEED);
+}
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){ if(!d) return '—'; const [y,m,j]=d.split('-'); return `${j}/${m}`; }
+
+/* ---------- Navigation ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  ['taches','chantiers','conges','assistant'].forEach(t=>
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
+});
+
+/* ---------- Init filtres / listes déroulantes ---------- */
+document.getElementById('periode').textContent = state.meta.periode;
+function fillSelect(el, items, allLabel){
+  el.innerHTML = `<option value="">${allLabel}</option>` + items.map(i=>`<option>${i}</option>`).join('');
+}
+function pilotes(){ return [...new Set(state.taches.map(t=>t.pilote).filter(Boolean))].sort(); }
+function sites(){ return [...new Set(state.taches.map(t=>t.site))].sort(); }
+function refreshFilters(){
+  fillSelect(document.getElementById('f-site'), sites(), 'Tous les sites');
+  fillSelect(document.getElementById('f-statut'), state.statuts, 'Tous les statuts');
+  fillSelect(document.getElementById('f-pilote'), pilotes(), 'Tous les pilotes');
+  fillSelect(document.getElementById('t-priorite'), state.priorites, '');
+}
+
+/* ---------- Tâches ---------- */
+['search','f-site','f-statut','f-pilote'].forEach(id=>
+  document.getElementById(id).addEventListener('input', renderTaches));
+
+function renderTaches(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const fs=document.getElementById('f-site').value;
+  const fst=document.getElementById('f-statut').value;
+  const fp=document.getElementById('f-pilote').value;
+  const list=state.taches.filter(t=>{
+    if(fs&&t.site!==fs) return false;
+    if(fst&&t.statut!==fst) return false;
+    if(fp&&t.pilote!==fp) return false;
+    if(q){ const blob=(t.site+' '+t.action+' '+t.pilote+' '+t.equipe+' '+t.consigne).toLowerCase(); if(!blob.includes(q)) return false; }
+    return true;
+  });
+  document.getElementById('taches-count').textContent = `${list.length} tâche(s) affichée(s) sur ${state.taches.length}`;
+  const c=getColors();
+  document.getElementById('taches-list').innerHTML = list.map(t=>{
+    const col=c[t.site]||'#334155';
+    const sts=state.statuts.map(s=>`<span class="stbtn ${s===t.statut?'on':''}" style="${s===t.statut?`background:${STATUS_COLORS[s]}`:''}" onclick="setStatut('${t.id}','${s}')">${s}</span>`).join('');
+    return `<div class="card">
+      <div class="top">
+        <span class="chip" style="background:${col}">${t.site}</span>
+        <span class="muted" style="font-size:12px">${t.id} · ${t.priorite}</span>
+        <button class="btn ghost sm" style="margin-left:auto" onclick="editTache('${t.id}')">Modifier</button>
+      </div>
+      <div class="action">${t.action}</div>
+      <div class="meta">
+        <span><b>${t.pilote||'—'}</b></span>
+        <span>${t.equipe||''}</span>
+        <span>📅 ${fmtDate(t.debut)} → ${fmtDate(t.fin)}</span>
+      </div>
+      <div class="statusrow">${sts}</div>
+      <div class="relais">
+        <label>Consigne de relais</label>
+        <textarea onchange="setConsigne('${t.id}',this.value)" placeholder="Laisse une consigne pour le suivant…">${t.consigne||''}</textarea>
+      </div>
+      ${t.maj?`<div class="muted" style="font-size:11px;margin-top:6px">Dernière mise à jour : ${t.maj}</div>`:''}
+    </div>`;
+  }).join('') || `<div class="empty">Aucune tâche ne correspond aux filtres.</div>`;
+}
+function getColors(){ const m={}; state.chantiers.forEach(c=>m[c.nom]=c.couleur); return m; }
+window.setStatut=(id,s)=>{ const t=state.taches.find(x=>x.id===id); t.statut=s; t.maj=`${today()}`; save(); renderTaches(); renderChantiers(); };
+window.setConsigne=(id,v)=>{ const t=state.taches.find(x=>x.id===id); t.consigne=v; t.maj=`${today()}`; save(); };
+
+let editingId=null;
+window.editTache=(id)=>{
+  editingId=id; const t=state.taches.find(x=>x.id===id);
+  document.getElementById('dlg-title').textContent='Modifier la tâche';
+  t_site.value=t.site; t_action.value=t.action; t_pilote.value=t.pilote;
+  t_equipe.value=t.equipe; t_debut.value=t.debut||''; t_fin.value=t.fin||''; t_priorite.value=t.priorite;
+  document.getElementById('t-delete').classList.remove('hidden');
+  document.getElementById('dlg-tache').showModal();
+};
+document.getElementById('add-tache').onclick=()=>{
+  editingId=null;
+  document.getElementById('dlg-title').textContent='Nouvelle tâche';
+  t_site.value=''; t_action.value=''; t_pilote.value=''; t_equipe.value=''; t_debut.value=''; t_fin.value=''; t_priorite.value='Moyenne';
+  document.getElementById('t-delete').classList.add('hidden');
+  document.getElementById('dlg-tache').showModal();
+};
+document.getElementById('dlg-tache').addEventListener('close', function(){
+  const v=this.returnValue;
+  if(v==='save'){
+    if(editingId){ const t=state.taches.find(x=>x.id===editingId);
+      Object.assign(t,{site:t_site.value.trim(),action:t_action.value.trim(),pilote:t_pilote.value.trim(),equipe:t_equipe.value.trim(),debut:t_debut.value||null,fin:t_fin.value||null,priorite:t_priorite.value,maj:today()});
+    } else {
+      const n=state.taches.length+1;
+      state.taches.push({id:'T-'+String(Date.now()).slice(-4),site:t_site.value.trim()||'Divers',action:t_action.value.trim(),pilote:t_pilote.value.trim(),equipe:t_equipe.value.trim(),debut:t_debut.value||null,fin:t_fin.value||null,duree:null,statut:'À faire',priorite:t_priorite.value,consigne:'',maj:today()});
+    }
+    rebuildChantiers(); save(); refreshFilters(); renderAll();
+  } else if(v==='delete' && editingId){
+    state.taches=state.taches.filter(x=>x.id!==editingId); rebuildChantiers(); save(); refreshFilters(); renderAll();
+  }
+});
+
+/* ---------- Chantiers ---------- */
+function rebuildChantiers(){
+  const map={};
+  state.taches.forEach(t=>{
+    const c=map[t.site]||(map[t.site]={nom:t.site,nb:0,debut:null,fin:null,couleur:(state.chantiers.find(x=>x.nom===t.site)||{}).couleur||'#334155'});
+    c.nb++;
+    [t.debut,t.fin].forEach(d=>{ if(d){ if(!c.debut||d<c.debut)c.debut=d; if(!c.fin||d>c.fin)c.fin=d; }});
+  });
+  state.chantiers=Object.values(map);
+}
+function renderChantiers(){
+  document.getElementById('chantiers-list').innerHTML = state.chantiers.map(c=>{
+    const ts=state.taches.filter(t=>t.site===c.nom);
+    const done=ts.filter(t=>t.statut==='Fait').length;
+    const pct=ts.length?Math.round(done/ts.length*100):0;
+    return `<div class="card">
+      <div class="top"><span class="chip" style="background:${c.couleur}">${c.nom}</span>
+      <span class="muted" style="margin-left:auto;font-size:13px">${done}/${ts.length} faites</span></div>
+      <div class="progress"><div style="width:${pct}%"></div></div>
+      <div class="meta"><span>📅 ${fmtDate(c.debut)} → ${fmtDate(c.fin)}</span><span><b>${pct}%</b></span></div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Congés ---------- */
+let editingConge=null;
+function renderConges(){
+  const el=document.getElementById('conges-list');
+  if(!state.conges.length){ el.innerHTML=`<div class="empty">Aucun congé enregistré.</div>`; return; }
+  el.innerHTML = state.conges.map((c,i)=>`<div class="card">
+    <div class="top"><b>${c.personne}</b>
+    <button class="btn ghost sm" style="margin-left:auto" onclick="editConge(${i})">Modifier</button></div>
+    <div class="meta" style="margin-top:6px"><span>🏖️ ${fmtDate(c.du)} → ${fmtDate(c.au)}</span>
+    ${c.remplacant?`<span>Remplaçant·e : <b>${c.remplacant}</b></span>`:''}</div>
+    ${c.remarque?`<div class="muted" style="margin-top:4px">${c.remarque}</div>`:''}
+  </div>`).join('');
+}
+window.editConge=(i)=>{ editingConge=i; const c=state.conges[i];
+  c_personne.value=c.personne;c_du.value=c.du||'';c_au.value=c.au||'';c_remplacant.value=c.remplacant||'';c_remarque.value=c.remarque||'';
+  document.getElementById('c-delete').classList.remove('hidden');
+  document.getElementById('dlg-conge').showModal();
+};
+document.getElementById('add-conge').onclick=()=>{ editingConge=null;
+  c_personne.value='';c_du.value='';c_au.value='';c_remplacant.value='';c_remarque.value='';
+  document.getElementById('c-delete').classList.add('hidden');
+  document.getElementById('dlg-conge').showModal();
+};
+document.getElementById('dlg-conge').addEventListener('close', function(){
+  const v=this.returnValue;
+  if(v==='save'){ const obj={personne:c_personne.value.trim(),du:c_du.value||null,au:c_au.value||null,remplacant:c_remplacant.value.trim(),remarque:c_remarque.value.trim()};
+    if(editingConge!==null) state.conges[editingConge]=obj; else state.conges.push(obj);
+  } else if(v==='delete' && editingConge!==null){ state.conges.splice(editingConge,1); }
+  if(v!=='cancel'){ save(); renderConges(); }
+});
+
+/* ---------- Assistant (OpenRouter) ---------- */
+document.getElementById('or-key').value = localStorage.getItem('or_key')||'';
+document.getElementById('or-model').value = localStorage.getItem('or_model')||'anthropic/claude-3.5-sonnet';
+document.getElementById('save-settings').onclick=()=>{
+  localStorage.setItem('or_key',document.getElementById('or-key').value.trim());
+  localStorage.setItem('or_model',document.getElementById('or-model').value.trim());
+  document.getElementById('ai-settings').open=false;
+  addMsg('sys','Réglages enregistrés ✅');
+};
+function addMsg(role,text){ const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; document.getElementById('chat').appendChild(d); d.scrollIntoView(); return d; }
+function memorySummary(){
+  const t=state.taches.map(x=>({id:x.id,site:x.site,action:x.action,pilote:x.pilote,equipe:x.equipe,debut:x.debut,fin:x.fin,statut:x.statut,priorite:x.priorite,consigne:x.consigne}));
+  return JSON.stringify({date_du_jour:today(),taches:t,conges:state.conges,chantiers:state.chantiers.map(c=>c.nom)});
+}
+document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
+document.getElementById('chat-send').onclick=()=>sendChat();
+document.getElementById('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
+
+async function sendChat(forced){
+  const input=document.getElementById('chat-input');
+  const text=(forced||input.value).trim(); if(!text) return;
+  if(!forced) input.value='';
+  const key=localStorage.getItem('or_key'); const model=localStorage.getItem('or_model')||'anthropic/claude-3.5-sonnet';
+  addMsg('user',text);
+  if(!key){ addMsg('sys','Ajoute d\'abord ta clé OpenRouter dans ⚙️ Réglages pour activer l\'assistant.'); document.getElementById('ai-settings').open=true; return; }
+  const thinking=addMsg('bot','…');
+  const system=`Tu es l'assistant de suivi de l'été 2026 d'une direction de services (écoles, accueils de loisirs). `+
+    `Tu réponds en français, de façon concise et opérationnelle. Tu t'appuies UNIQUEMENT sur la mémoire fournie (JSON). `+
+    `Tu peux faire des récaps (par statut, par site/chantier, par pilote), répondre aux questions, repérer les consignes de relais et les points en suspens. `+
+    `Tu ne modifies pas la mémoire toi-même : si on te demande une modification, indique précisément quoi changer. `+
+    `Statuts possibles : À faire, En cours, Fait, Jalon.\n\nMÉMOIRE ACTUELLE:\n`+memorySummary();
+  try{
+    const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+      body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:text}]})
+    });
+    const data=await r.json();
+    if(!r.ok){ thinking.className='msg sys'; thinking.textContent='Erreur OpenRouter : '+(data.error?.message||r.status); return; }
+    thinking.textContent=data.choices?.[0]?.message?.content||'(réponse vide)';
+  }catch(e){ thinking.className='msg sys'; thinking.textContent='Connexion impossible à OpenRouter ('+e.message+'). Astuce : l\'assistant marche mieux quand la page est hébergée (étape suivante).'; }
+}
+
+/* ---------- Sauvegarde / import / reset ---------- */
+document.getElementById('export').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='suivi-ete-2026-sauvegarde.json'; a.click();
+};
+document.getElementById('import').onclick=()=>document.getElementById('import-file').click();
+document.getElementById('import-file').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ try{ state=JSON.parse(rd.result); save(); refreshFilters(); renderAll(); alert('Sauvegarde importée ✅'); }catch(err){ alert('Fichier invalide'); } };
+  rd.readAsText(f);
+};
+document.getElementById('reset').onclick=()=>{ if(confirm('Réinitialiser avec les données d\'origine du Gantt ? Les modifications locales seront perdues.')){ state=structuredClone(SEED); save(); refreshFilters(); renderAll(); } };
+
+/* ---------- Render global ---------- */
+function renderAll(){ renderTaches(); renderChantiers(); renderConges(); }
+refreshFilters(); renderAll();
+</script>
+</body>
+</html>
