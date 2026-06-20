@@ -2,130 +2,820 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0c4f87">
 <title>Suivi de l'été 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
-    --accent:#2563eb; --accent-ink:#fff;
-    --afaire:#64748b; --encours:#d97706; --fait:#16a34a; --jalon:#7c3aed;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
-  header{position:sticky;top:0;z-index:10;background:var(--accent);color:#fff;padding:14px 16px 0}
-  header h1{margin:0;font-size:18px;font-weight:700}
-  header .sub{font-size:12px;opacity:.85;margin-top:2px}
-  nav{display:flex;gap:4px;margin-top:12px;overflow-x:auto}
-  nav button{flex:0 0 auto;background:transparent;border:0;color:#fff;opacity:.7;padding:10px 12px;font-size:14px;font-weight:600;border-bottom:3px solid transparent;cursor:pointer}
-  nav button.active{opacity:1;border-color:#fff}
-  main{padding:14px;max-width:760px;margin:0 auto}
-  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-  select,input,textarea,button{font:inherit}
-  select,input[type=text],input[type=date],textarea{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);width:100%}
-  .toolbar select,.toolbar input{width:auto;flex:1 1 130px;min-width:120px}
-  .btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 14px;font-weight:600;cursor:pointer}
-  .btn.ghost{background:#fff;color:var(--accent);border:1px solid var(--accent)}
-  .btn.sm{padding:5px 10px;font-size:13px;border-radius:7px}
-  .muted{color:var(--muted)}
-  .count{font-size:13px;color:var(--muted);margin-bottom:8px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-  .card .top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .chip{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;color:#fff;white-space:nowrap}
-  .action{font-weight:600;margin:6px 0 4px}
-  .meta{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px}
-  .meta b{color:var(--ink);font-weight:600}
-  .statusrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
-  .stbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
-  .stbtn.on{color:#fff;border-color:transparent}
-  .relais{margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px}
-  .relais label{font-size:11px;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:.03em}
-  .relais textarea{margin-top:4px;background:#fff;min-height:38px;resize:vertical}
-  .progress{height:8px;background:var(--line);border-radius:999px;overflow:hidden;margin:8px 0}
-  .progress > div{height:100%;background:var(--fait)}
-  /* Assistant */
-  #chat{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
-  .msg{padding:10px 12px;border-radius:12px;max-width:88%;white-space:pre-wrap}
-  .msg.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:3px}
-  .msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:3px}
-  .msg.sys{align-self:center;background:#fef9c3;border:1px solid #fde68a;font-size:13px;color:#854d0e;text-align:center}
-  .composer{display:flex;gap:8px}
-  .composer input{flex:1}
-  .quick{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
-  .quick button{font-size:12px}
-  details.settings{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px}
-  details.settings summary{cursor:pointer;font-weight:600}
-  .field{margin-top:8px}
-  .field label{font-size:12px;font-weight:600;color:var(--muted);display:block;margin-bottom:3px}
-  .footer-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-  dialog{border:0;border-radius:14px;padding:0;max-width:480px;width:92%}
-  dialog .dlg{padding:16px}
-  dialog h3{margin:0 0 10px}
-  .hidden{display:none!important}
-  .empty{text-align:center;color:var(--muted);padding:30px 10px}
+/* ============================================================
+   PALETTE & TYPOGRAPHIE
+   Inspirée de l'identité de Maurepas : bleu marine, vert nature,
+   accents ambrés, fonds crème. Tonalité institutionnelle douce.
+   ============================================================ */
+:root{
+  /* Surfaces */
+  --bg:#f6f2ea;
+  --bg-deep:#ebe5d5;
+  --surface:#ffffff;
+  --surface-2:#fbf8f1;
+
+  /* Textes */
+  --ink:#0c2545;
+  --ink-soft:#3d4f6e;
+  --ink-muted:#7c8aa1;
+
+  /* Lignes */
+  --line:#e6dfce;
+  --line-soft:#f0eadc;
+
+  /* Couleurs sémantiques */
+  --primary:#0c4f87;
+  --primary-dark:#083b66;
+  --primary-soft:#e2ecf7;
+  --accent:#e08400;
+  --accent-soft:#fff2dc;
+  --success:#2d7a3a;
+  --success-soft:#dfeede;
+  --warn:#b07300;
+  --danger:#b91c1c;
+
+  /* Statuts */
+  --st-afaire:#6b7c97;
+  --st-encours:#e08400;
+  --st-fait:#2d7a3a;
+  --st-jalon:#7c3aed;
+
+  /* Couleurs par chantier (palette harmonisée) */
+  --ch-malmedonne:#0c4f87;
+  --ch-atelier:#7c3aed;
+  --ch-haute-futaie:#3f7a5a;
+  --ch-clp:#d97706;
+  --ch-cap-chapiteau:#a6781a;
+  --ch-cap-latour:#8a6e4b;
+  --ch-bessieres:#b8860b;
+  --ch-default:#475569;
+
+  /* Ombres */
+  --shadow-sm:0 1px 2px rgba(12,37,69,.06);
+  --shadow-md:0 4px 12px rgba(12,37,69,.08);
+  --shadow-lg:0 10px 30px rgba(12,37,69,.12);
+
+  /* Rayons */
+  --r-sm:8px;
+  --r-md:12px;
+  --r-lg:16px;
+  --r-pill:999px;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  font-size:15px;
+  line-height:1.5;
+  font-feature-settings:'cv11','ss01';
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+
+/* ============================================================
+   HEADER  — fond bleu marine, titre + période + mini-stats
+   ============================================================ */
+header.app{
+  background:linear-gradient(160deg,var(--primary-dark) 0%,var(--primary) 60%,#1a6aaa 100%);
+  color:#fff;
+  padding:18px 16px 0;
+  padding-top:calc(18px + env(safe-area-inset-top));
+  position:sticky;
+  top:0;
+  z-index:50;
+  box-shadow:var(--shadow-md);
+}
+header.app .topline{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+header.app .logo{
+  width:38px;height:38px;border-radius:10px;
+  background:#fff;color:var(--primary);
+  display:grid;place-items:center;
+  font-weight:800;font-size:18px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+  letter-spacing:-.02em;
+}
+header.app .title{
+  margin:0;font-size:18px;font-weight:700;line-height:1.2;letter-spacing:-.01em;
+}
+header.app .subtitle{
+  font-size:12.5px;opacity:.85;margin-top:2px;font-weight:500;
+}
+header.app .stats{
+  margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;
+}
+.stat-pill{
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.18);
+  color:#fff;
+  padding:5px 10px;
+  border-radius:var(--r-pill);
+  font-size:12px;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;
+  backdrop-filter:blur(8px);
+}
+.stat-pill .dot{
+  width:6px;height:6px;border-radius:50%;
+}
+.stat-pill .dot.done{background:#7ed391}
+.stat-pill .dot.prog{background:#ffc066}
+.stat-pill .dot.todo{background:#cbd5e1}
+
+/* Onglets — soulignement animé */
+nav.tabs{
+  display:flex;gap:2px;margin-top:14px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{
+  flex:0 0 auto;
+  background:transparent;border:0;color:rgba(255,255,255,.65);
+  padding:11px 14px 14px;font-size:14px;font-weight:600;
+  cursor:pointer;
+  border-bottom:3px solid transparent;
+  transition:color .18s ease, border-color .18s ease;
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:inherit;
+}
+nav.tabs button:hover{color:rgba(255,255,255,.9)}
+nav.tabs button.active{color:#fff;border-color:#fff}
+nav.tabs button .ico{font-size:15px;line-height:1}
+
+/* ============================================================
+   LAYOUT GLOBAL
+   ============================================================ */
+main{
+  padding:16px;
+  max-width:780px;
+  margin:0 auto;
+}
+section.tab{display:block}
+section.tab.hidden{display:none}
+
+/* ============================================================
+   BARRE FILTRES — sticky, sous le header, avec compteur
+   ============================================================ */
+.filters{
+  position:sticky;
+  top:88px;
+  z-index:20;
+  background:var(--bg);
+  margin:-4px -4px 14px;
+  padding:10px 4px 8px;
+  border-bottom:1px solid var(--line);
+}
+.search-row{position:relative;margin-bottom:10px}
+.search-row input{
+  width:100%;
+  padding:11px 12px 11px 38px;
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  background:var(--surface);
+  font:inherit;color:var(--ink);
+  transition:border-color .15s, box-shadow .15s;
+}
+.search-row input:focus{
+  outline:none;
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+.search-row .search-ico{
+  position:absolute;left:12px;top:50%;transform:translateY(-50%);
+  color:var(--ink-muted);pointer-events:none;
+}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap}
+.filter-row select{
+  flex:1 1 130px;min-width:120px;
+  padding:9px 30px 9px 12px;
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237c8aa1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
+  font:inherit;color:var(--ink);
+  appearance:none;-webkit-appearance:none;
+  cursor:pointer;
+}
+.filter-row select:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+.count-bar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  font-size:13px;color:var(--ink-soft);font-weight:500;
+  margin-bottom:12px;
+}
+.count-bar strong{color:var(--ink);font-weight:700}
+.count-bar .mini-stat{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--line);
+  font-size:12px;font-weight:600;
+}
+.count-bar .mini-stat.done{color:var(--success);border-color:var(--success-soft);background:var(--success-soft)}
+.count-bar .mini-stat.prog{color:var(--warn);border-color:var(--accent-soft);background:var(--accent-soft)}
+
+/* ============================================================
+   CARD TÂCHE — l'élément central, soigné
+   - Bordure gauche colorée = couleur du chantier (accroche visuelle)
+   - Hiérarchie typo : chantier > action > méta > statut > relais
+   ============================================================ */
+.task{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:14px 14px 14px 18px;
+  margin-bottom:10px;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .15s, transform .15s;
+}
+.task:hover{box-shadow:var(--shadow-md)}
+.task::before{
+  content:'';
+  position:absolute;left:0;top:14px;bottom:14px;width:4px;
+  background:var(--site-color,var(--ch-default));
+  border-radius:0 4px 4px 0;
+}
+.task .head{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.task .site-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;
+  color:var(--site-color,var(--ch-default));
+  letter-spacing:.01em;
+}
+.task .site-chip::before{
+  content:'';width:8px;height:8px;border-radius:50%;
+  background:var(--site-color,var(--ch-default));
+}
+.task .id{
+  font-size:11px;color:var(--ink-muted);font-weight:500;
+  font-variant-numeric:tabular-nums;
+}
+.task .prio{
+  font-size:11px;font-weight:700;
+  padding:2px 7px;border-radius:var(--r-pill);
+  background:var(--line-soft);color:var(--ink-soft);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.task .prio.haute{background:#ffe8d4;color:#9a4400}
+.task .prio.critique{background:#ffdbdb;color:#8b1818}
+.task .edit-btn{
+  margin-left:auto;
+  background:transparent;border:1px solid var(--line);
+  color:var(--ink-soft);
+  padding:4px 10px;font-size:12px;font-weight:600;
+  border-radius:var(--r-pill);cursor:pointer;font-family:inherit;
+  transition:all .15s;
+}
+.task .edit-btn:hover{background:var(--primary-soft);color:var(--primary);border-color:var(--primary-soft)}
+.task .action{
+  font-size:15.5px;font-weight:600;line-height:1.35;
+  color:var(--ink);
+  margin:4px 0 8px;
+  letter-spacing:-.005em;
+}
+.task .meta{
+  display:flex;flex-wrap:wrap;gap:10px 14px;
+  font-size:13px;color:var(--ink-soft);
+}
+.task .meta .item{display:inline-flex;align-items:center;gap:5px}
+.task .meta .item b{color:var(--ink);font-weight:600}
+.task .meta .item svg{flex-shrink:0;color:var(--ink-muted)}
+
+/* Statut — pills tactiles bien grandes */
+.status-row{
+  display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;
+}
+.st-btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:7px 12px;
+  border:1.5px solid var(--line);
+  background:var(--surface);
+  color:var(--ink-muted);
+  font-size:12.5px;font-weight:600;
+  border-radius:var(--r-pill);
+  cursor:pointer;font-family:inherit;
+  transition:all .15s;
+  min-height:32px;
+}
+.st-btn:hover{border-color:var(--ink-muted);color:var(--ink-soft)}
+.st-btn.on{color:#fff;border-color:transparent;box-shadow:var(--shadow-sm)}
+.st-btn.on[data-st="À faire"]{background:var(--st-afaire)}
+.st-btn.on[data-st="En cours"]{background:var(--st-encours)}
+.st-btn.on[data-st="Fait"]{background:var(--st-fait)}
+.st-btn.on[data-st="Jalon"]{background:var(--st-jalon)}
+
+/* Consigne de relais — point-clé du projet, mis en valeur */
+.relais{
+  margin-top:12px;
+  background:var(--accent-soft);
+  border:1px solid #f5d6a3;
+  border-radius:var(--r-md);
+  padding:10px 12px;
+}
+.relais .lbl{
+  display:flex;align-items:center;gap:6px;
+  font-size:11px;font-weight:700;
+  color:var(--accent);
+  text-transform:uppercase;letter-spacing:.06em;
+  margin-bottom:5px;
+}
+.relais textarea{
+  width:100%;
+  background:#fff;
+  border:1px solid #f5d6a3;
+  border-radius:var(--r-sm);
+  padding:8px 10px;
+  font:inherit;color:var(--ink);
+  min-height:38px;resize:vertical;
+  font-size:14px;
+}
+.relais textarea:focus{
+  outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(224,132,0,.15);
+}
+.relais textarea::placeholder{color:#b58450;font-style:italic}
+
+.task .maj{
+  font-size:11px;color:var(--ink-muted);
+  margin-top:8px;display:inline-flex;align-items:center;gap:4px;
+}
+
+/* ============================================================
+   VUE CHANTIERS — grille de vignettes
+   ============================================================ */
+.chantiers-grid{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:12px;
+}
+@media (min-width:560px){
+  .chantiers-grid{grid-template-columns:1fr 1fr}
+}
+.ch-card{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  overflow:hidden;
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow .15s, transform .15s;
+  cursor:pointer;
+}
+.ch-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.ch-card .banner{
+  height:6px;
+  background:var(--site-color,var(--ch-default));
+}
+.ch-card .body{padding:14px}
+.ch-card h3{
+  margin:0 0 4px;
+  font-size:16px;font-weight:700;
+  color:var(--ink);letter-spacing:-.01em;
+}
+.ch-card .meta-line{
+  font-size:12.5px;color:var(--ink-soft);
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.ch-card .bar{
+  height:8px;background:var(--bg-deep);
+  border-radius:var(--r-pill);overflow:hidden;
+  margin-bottom:8px;
+}
+.ch-card .bar > div{
+  height:100%;
+  background:var(--site-color,var(--ch-default));
+  border-radius:var(--r-pill);
+  transition:width .4s ease;
+}
+.ch-card .footer-line{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12.5px;color:var(--ink-soft);
+}
+.ch-card .pct{
+  font-size:18px;font-weight:800;
+  color:var(--site-color,var(--ch-default));
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em;
+}
+
+/* ============================================================
+   VUE CONGÉS
+   ============================================================ */
+.conges-list .leave{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:12px 14px;
+  margin-bottom:10px;
+  box-shadow:var(--shadow-sm);
+  display:flex;gap:12px;align-items:flex-start;
+}
+.leave .avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:linear-gradient(135deg,var(--primary-soft),var(--primary));
+  color:#fff;font-weight:700;font-size:14px;
+  display:grid;place-items:center;
+  flex-shrink:0;
+  letter-spacing:-.02em;
+}
+.leave .body{flex:1;min-width:0}
+.leave .top{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  margin-bottom:4px;
+}
+.leave .name{font-weight:700;color:var(--ink);font-size:15px}
+.leave .tag{
+  font-size:11px;font-weight:600;
+  padding:2px 8px;border-radius:var(--r-pill);
+}
+.leave .tag.now{background:var(--accent-soft);color:var(--accent)}
+.leave .tag.soon{background:var(--primary-soft);color:var(--primary)}
+.leave .tag.past{background:var(--line-soft);color:var(--ink-muted)}
+.leave .dates{font-size:13px;color:var(--ink-soft);display:flex;gap:10px;flex-wrap:wrap}
+.leave .dates b{color:var(--ink);font-weight:600}
+.leave .remplacant{
+  font-size:12.5px;color:var(--ink-soft);margin-top:4px;
+}
+.leave .remplacant b{color:var(--ink)}
+.leave .remarque{
+  font-size:13px;color:var(--ink-soft);margin-top:6px;
+  padding-top:6px;border-top:1px dashed var(--line);
+  font-style:italic;
+}
+.leave .edit-btn{
+  background:transparent;border:1px solid var(--line);
+  color:var(--ink-soft);
+  padding:3px 9px;font-size:11.5px;font-weight:600;
+  border-radius:var(--r-pill);cursor:pointer;font-family:inherit;
+  flex-shrink:0;
+}
+.leave .edit-btn:hover{background:var(--primary-soft);color:var(--primary)}
+
+/* ============================================================
+   ASSISTANT CHAT — esprit messagerie
+   ============================================================ */
+.assistant-wrap{
+  display:flex;flex-direction:column;
+  min-height:calc(100vh - 240px);
+}
+.assistant-settings{
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--r-md);
+  padding:12px 14px;
+  margin-bottom:14px;
+}
+.assistant-settings summary{
+  cursor:pointer;font-weight:600;color:var(--ink-soft);
+  font-size:13.5px;display:flex;align-items:center;gap:8px;
+  list-style:none;
+}
+.assistant-settings summary::-webkit-details-marker{display:none}
+.assistant-settings summary::before{
+  content:'›';font-size:18px;line-height:1;
+  transition:transform .2s;color:var(--ink-muted);
+}
+.assistant-settings[open] summary::before{transform:rotate(90deg)}
+.assistant-settings .field{margin-top:10px}
+.assistant-settings label{
+  display:block;font-size:11.5px;font-weight:600;
+  color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;
+  margin-bottom:4px;
+}
+.assistant-settings input{
+  width:100%;padding:9px 11px;border:1px solid var(--line);
+  border-radius:var(--r-sm);background:#fff;
+  font:inherit;color:var(--ink);
+}
+.assistant-settings input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+
+.suggest{
+  display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+}
+.suggest button{
+  background:var(--surface);
+  border:1px solid var(--line);
+  color:var(--ink-soft);
+  padding:7px 12px;
+  border-radius:var(--r-pill);
+  font-size:12.5px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.suggest button:hover{background:var(--primary-soft);color:var(--primary);border-color:var(--primary-soft)}
+
+#chat{
+  display:flex;flex-direction:column;gap:10px;
+  margin-bottom:14px;flex:1;
+  min-height:200px;
+}
+.msg{
+  padding:10px 13px;border-radius:14px;
+  max-width:85%;white-space:pre-wrap;
+  font-size:14.5px;line-height:1.5;
+  animation:msg-in .25s ease;
+}
+@keyframes msg-in{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:none}
+}
+.msg.user{
+  align-self:flex-end;
+  background:var(--primary);color:#fff;
+  border-bottom-right-radius:4px;
+  box-shadow:var(--shadow-sm);
+}
+.msg.bot{
+  align-self:flex-start;
+  background:var(--surface);color:var(--ink);
+  border:1px solid var(--line);
+  border-bottom-left-radius:4px;
+  box-shadow:var(--shadow-sm);
+}
+.msg.sys{
+  align-self:center;
+  background:var(--accent-soft);
+  border:1px solid #f5d6a3;
+  color:#7a4400;
+  font-size:13px;
+  text-align:center;
+  padding:8px 14px;
+  border-radius:var(--r-md);
+  max-width:90%;
+}
+.msg.bot.thinking{
+  display:flex;align-items:center;gap:6px;
+  color:var(--ink-muted);
+}
+.msg.bot.thinking .d{
+  width:6px;height:6px;border-radius:50%;background:var(--ink-muted);
+  animation:bounce 1.2s infinite ease-in-out;
+}
+.msg.bot.thinking .d:nth-child(2){animation-delay:.15s}
+.msg.bot.thinking .d:nth-child(3){animation-delay:.3s}
+@keyframes bounce{
+  0%,80%,100%{transform:scale(.8);opacity:.5}
+  40%{transform:scale(1);opacity:1}
+}
+
+.composer{
+  display:flex;gap:8px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--r-pill);
+  padding:4px 4px 4px 14px;
+  box-shadow:var(--shadow-sm);
+  position:sticky;bottom:8px;
+}
+.composer input{
+  flex:1;border:0;background:transparent;
+  font:inherit;color:var(--ink);
+  padding:10px 0;outline:none;
+}
+.composer input::placeholder{color:var(--ink-muted)}
+.composer button{
+  background:var(--primary);color:#fff;border:0;
+  width:38px;height:38px;border-radius:50%;
+  cursor:pointer;display:grid;place-items:center;
+  transition:background .15s, transform .1s;
+  flex-shrink:0;
+}
+.composer button:hover{background:var(--primary-dark)}
+.composer button:active{transform:scale(.94)}
+
+/* ============================================================
+   BOUTONS GÉNÉRIQUES
+   ============================================================ */
+.btn{
+  background:var(--primary);color:#fff;border:0;
+  border-radius:var(--r-md);
+  padding:11px 16px;font-weight:600;font-size:14.5px;
+  cursor:pointer;font-family:inherit;
+  transition:all .15s;
+  display:inline-flex;align-items:center;gap:7px;justify-content:center;
+  text-decoration:none;
+}
+.btn:hover{background:var(--primary-dark);box-shadow:var(--shadow-sm)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{
+  background:var(--surface);color:var(--primary);
+  border:1.5px solid var(--primary);
+}
+.btn.ghost:hover{background:var(--primary-soft)}
+.btn.sm{padding:7px 12px;font-size:13px}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:#fff}
+.btn.danger:hover{background:#fef2f2}
+.btn.block{width:100%}
+
+.add-bar{
+  display:flex;justify-content:center;
+  margin:18px 0 8px;
+}
+
+/* ============================================================
+   DIALOGS — propres et tactiles
+   ============================================================ */
+dialog{
+  border:0;padding:0;
+  background:transparent;
+  max-width:480px;width:92%;
+}
+dialog::backdrop{
+  background:rgba(12,37,69,.4);
+  backdrop-filter:blur(2px);
+}
+dialog .dlg{
+  background:var(--surface);
+  border-radius:var(--r-lg);
+  padding:18px;
+  box-shadow:var(--shadow-lg);
+}
+dialog h3{
+  margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);
+  letter-spacing:-.01em;
+}
+.field{margin-bottom:10px}
+.field label{
+  display:block;font-size:12px;font-weight:600;
+  color:var(--ink-soft);
+  margin-bottom:4px;
+  text-transform:uppercase;letter-spacing:.03em;
+}
+.field input[type=text],
+.field input[type=date],
+.field select,
+.field textarea{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:var(--r-sm);
+  background:#fff;color:var(--ink);
+  font:inherit;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-soft);
+}
+.dlg-actions{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-top:16px;padding-top:14px;
+  border-top:1px solid var(--line);
+}
+.dlg-actions .spacer{flex:1}
+
+/* ============================================================
+   FOOTER ACTIONS (export/import/reset)
+   ============================================================ */
+.footer-actions{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-top:28px;padding-top:18px;
+  border-top:1px solid var(--line);
+}
+
+/* ============================================================
+   ÉTAT VIDE
+   ============================================================ */
+.empty{
+  text-align:center;color:var(--ink-muted);
+  padding:40px 16px;
+  background:var(--surface);
+  border:1px dashed var(--line);
+  border-radius:var(--r-md);
+}
+.empty .em{font-size:32px;margin-bottom:6px;display:block;opacity:.6}
+
+/* ============================================================
+   UTILITAIRES
+   ============================================================ */
+.hidden{display:none!important}
+.muted{color:var(--ink-muted)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ============================================================
+   RESPONSIVE FIN — petits ajustements téléphone
+   ============================================================ */
+@media (max-width:420px){
+  header.app .stats{width:100%;margin-left:0;margin-top:6px}
+  .filters{top:96px}
+  main{padding:12px}
+}
 </style>
 </head>
 <body>
-<header>
-  <h1>📋 Suivi de l'été 2026</h1>
-  <div class="sub" id="periode"></div>
-  <nav>
-    <button data-tab="taches" class="active">Tâches</button>
-    <button data-tab="chantiers">Chantiers</button>
-    <button data-tab="conges">Congés</button>
-    <button data-tab="assistant">Assistant</button>
+
+<header class="app">
+  <div class="topline">
+    <div class="logo" aria-hidden="true">É26</div>
+    <div>
+      <h1 class="title">Suivi de l'été 2026</h1>
+      <div class="subtitle" id="periode">6 juin → 1er septembre 2026</div>
+    </div>
+    <div class="stats" id="header-stats"></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="taches" class="active" role="tab"><span class="ico">📋</span>Tâches</button>
+    <button data-tab="chantiers" role="tab"><span class="ico">🏗️</span>Chantiers</button>
+    <button data-tab="conges" role="tab"><span class="ico">🏖️</span>Congés</button>
+    <button data-tab="assistant" role="tab"><span class="ico">💬</span>Assistant</button>
   </nav>
 </header>
+
 <main>
 
-  <!-- TÂCHES -->
-  <section id="tab-taches">
-    <div class="toolbar">
-      <input type="text" id="search" placeholder="Rechercher…">
-      <select id="f-site"></select>
-      <select id="f-statut"></select>
-      <select id="f-pilote"></select>
+  <!-- ============== ONGLET TÂCHES ============== -->
+  <section id="tab-taches" class="tab">
+    <div class="filters">
+      <div class="search-row">
+        <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="search" placeholder="Rechercher une tâche, un pilote, un site…">
+      </div>
+      <div class="filter-row">
+        <select id="f-site"></select>
+        <select id="f-statut"></select>
+        <select id="f-pilote"></select>
+      </div>
     </div>
-    <div class="count" id="taches-count"></div>
+    <div class="count-bar" id="taches-count"></div>
     <div id="taches-list"></div>
-    <button class="btn ghost" id="add-tache" style="width:100%">+ Ajouter une tâche</button>
-  </section>
-
-  <!-- CHANTIERS -->
-  <section id="tab-chantiers" class="hidden">
-    <div id="chantiers-list"></div>
-  </section>
-
-  <!-- CONGÉS -->
-  <section id="tab-conges" class="hidden">
-    <div class="count">Qui est absent, et quand. (Données limitées au nécessaire.)</div>
-    <div id="conges-list"></div>
-    <button class="btn ghost" id="add-conge" style="width:100%">+ Ajouter un congé</button>
-  </section>
-
-  <!-- ASSISTANT -->
-  <section id="tab-assistant" class="hidden">
-    <details class="settings" id="ai-settings">
-      <summary>⚙️ Réglages de l'assistant (OpenRouter)</summary>
-      <div class="field">
-        <label>Clé OpenRouter (stockée uniquement sur cet appareil)</label>
-        <input type="text" id="or-key" placeholder="sk-or-…">
-      </div>
-      <div class="field">
-        <label>Modèle</label>
-        <input type="text" id="or-model" placeholder="anthropic/claude-3.5-sonnet">
-      </div>
-      <div class="field"><button class="btn sm" id="save-settings">Enregistrer</button></div>
-    </details>
-    <div class="quick">
-      <button class="btn ghost sm" data-q="Fais-moi un récap de ce qui a été fait et de ce qui reste à faire.">Récap fait / à faire</button>
-      <button class="btn ghost sm" data-q="Quelles sont les tâches prioritaires des 2 prochaines semaines ?">Prochaines priorités</button>
-      <button class="btn ghost sm" data-q="Où en est le nouveau centre Atelier des loisirs ?">État Atelier des loisirs</button>
-      <button class="btn ghost sm" data-q="Y a-t-il des consignes de relais ou des points en suspens à traiter ?">Consignes & points en suspens</button>
+    <div class="add-bar">
+      <button class="btn ghost" id="add-tache">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Ajouter une tâche
+      </button>
     </div>
-    <div id="chat"></div>
-    <div class="composer">
-      <input type="text" id="chat-input" placeholder="Pose ta question…">
-      <button class="btn" id="chat-send">Envoyer</button>
+  </section>
+
+  <!-- ============== ONGLET CHANTIERS ============== -->
+  <section id="tab-chantiers" class="tab hidden">
+    <div class="count-bar" id="chantiers-summary"></div>
+    <div class="chantiers-grid" id="chantiers-list"></div>
+  </section>
+
+  <!-- ============== ONGLET CONGÉS ============== -->
+  <section id="tab-conges" class="tab hidden">
+    <div class="count-bar">
+      <span>Qui est absent, et quand. <span class="muted">Données limitées au nécessaire.</span></span>
+    </div>
+    <div class="conges-list" id="conges-list"></div>
+    <div class="add-bar">
+      <button class="btn ghost" id="add-conge">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Ajouter un congé
+      </button>
+    </div>
+  </section>
+
+  <!-- ============== ONGLET ASSISTANT ============== -->
+  <section id="tab-assistant" class="tab hidden">
+    <div class="assistant-wrap">
+      <details class="assistant-settings" id="ai-settings">
+        <summary>Réglages de l'assistant (OpenRouter)</summary>
+        <div class="field">
+          <label>Clé OpenRouter (stockée uniquement sur cet appareil)</label>
+          <input type="text" id="or-key" placeholder="sk-or-…">
+        </div>
+        <div class="field">
+          <label>Modèle</label>
+          <input type="text" id="or-model" placeholder="anthropic/claude-sonnet-4.5">
+        </div>
+        <div class="field">
+          <button class="btn sm" id="save-settings">Enregistrer</button>
+        </div>
+      </details>
+      <div class="suggest">
+        <button data-q="Fais-moi un récap de ce qui a été fait et de ce qui reste à faire.">✨ Récap fait / à faire</button>
+        <button data-q="Quelles sont les tâches prioritaires des 2 prochaines semaines ?">📌 Prochaines priorités</button>
+        <button data-q="Où en est le nouveau centre Atelier des loisirs ?">🏫 État Atelier des loisirs</button>
+        <button data-q="Y a-t-il des consignes de relais ou des points en suspens à traiter ?">📝 Consignes & points en suspens</button>
+      </div>
+      <div id="chat"></div>
+      <div class="composer">
+        <input type="text" id="chat-input" placeholder="Pose ta question…">
+        <button id="chat-send" aria-label="Envoyer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4z"/></svg>
+        </button>
+      </div>
     </div>
   </section>
 
@@ -137,7 +827,7 @@
   </div>
 </main>
 
-<!-- Dialog édition tâche -->
+<!-- ============== DIALOG ÉDITION TÂCHE ============== -->
 <dialog id="dlg-tache"><form method="dialog" class="dlg">
   <h3 id="dlg-title">Tâche</h3>
   <div class="field"><label>Site / chantier</label><input type="text" id="t-site"></div>
@@ -147,14 +837,15 @@
   <div class="field"><label>Début</label><input type="date" id="t-debut"></div>
   <div class="field"><label>Fin</label><input type="date" id="t-fin"></div>
   <div class="field"><label>Priorité</label><select id="t-priorite"></select></div>
-  <div class="footer-actions" style="border:0;margin-top:14px">
+  <div class="dlg-actions">
     <button class="btn" id="t-save" value="save">Enregistrer</button>
     <button class="btn ghost" value="cancel">Annuler</button>
-    <button class="btn ghost" id="t-delete" value="delete" style="margin-left:auto;color:#dc2626;border-color:#dc2626">Supprimer</button>
+    <div class="spacer"></div>
+    <button class="btn danger" id="t-delete" value="delete">Supprimer</button>
   </div>
 </form></dialog>
 
-<!-- Dialog congé -->
+<!-- ============== DIALOG ÉDITION CONGÉ ============== -->
 <dialog id="dlg-conge"><form method="dialog" class="dlg">
   <h3>Congé</h3>
   <div class="field"><label>Personne</label><input type="text" id="c-personne"></div>
@@ -162,50 +853,93 @@
   <div class="field"><label>Au</label><input type="date" id="c-au"></div>
   <div class="field"><label>Remplaçant·e</label><input type="text" id="c-remplacant"></div>
   <div class="field"><label>Remarque</label><input type="text" id="c-remarque"></div>
-  <div class="footer-actions" style="border:0;margin-top:14px">
+  <div class="dlg-actions">
     <button class="btn" value="save">Enregistrer</button>
     <button class="btn ghost" value="cancel">Annuler</button>
-    <button class="btn ghost" id="c-delete" value="delete" style="margin-left:auto;color:#dc2626;border-color:#dc2626">Supprimer</button>
+    <div class="spacer"></div>
+    <button class="btn danger" id="c-delete" value="delete">Supprimer</button>
   </div>
 </form></dialog>
 
 <script>
-const SEED = {"meta": {"titre": "Suivi de l'été 2026", "periode": "6 juin → 1er septembre 2026", "source": "Gantt croisé été 2026"}, "statuts": ["À faire", "En cours", "Fait", "Jalon"], "priorites": ["Faible", "Moyenne", "Haute", "Critique"], "services": ["Équipe manut renforcée", "Équipe HR", "Enfance", "EN + ATSEM", "Patrimoine + entreprise", "Fournisseur", "DSI / VPI-TNI"], "chantiers": [{"nom": "Haute-Futaie", "nb": 4, "debut": "2026-06-06", "fin": "2026-07-24", "couleur": "#334155"}, {"nom": "Malmedonne", "nb": 16, "debut": "2026-06-06", "fin": "2026-08-31", "couleur": "#2563eb"}, {"nom": "CLP", "nb": 3, "debut": "2026-06-24", "fin": "2026-07-06", "couleur": "#ea580c"}, {"nom": "CAP Chapiteau", "nb": 1, "debut": "2026-06-06", "fin": "2026-07-09", "couleur": "#334155"}, {"nom": "CAP La Tour", "nb": 1, "debut": "2026-06-06", "fin": "2026-07-09", "couleur": "#334155"}, {"nom": "Atelier des loisirs", "nb": 6, "debut": "2026-07-16", "fin": "2026-09-01", "couleur": "#7c3aed"}, {"nom": "Bessières", "nb": 3, "debut": "2026-06-29", "fin": "2026-08-28", "couleur": "#ca8a04"}], "taches": [{"id": "T-001", "site": "Haute-Futaie", "action": "Préparation cartons + tri", "pilote": "L. Gé  HF", "equipe": "EN + ATSEM", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-002", "site": "Haute-Futaie", "action": "Déménagement cartons + mobilier vers RDC Malmedonne", "pilote": "S. Barbedette +A, Dem", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-003", "site": "Haute-Futaie", "action": "Déménagement mobilier vers autres écoles", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-004", "site": "Haute-Futaie", "action": "Transfert mobilier + matériel vers déchèterie", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-07-13", "fin": "2026-07-24", "duree": 12, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-005", "site": "Malmedonne", "action": "Préparation cartons + tri", "pilote": "L. Gé / D. Ikhelf", "equipe": "EN + Anim + A. Dem", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-006", "site": "Malmedonne", "action": "Transfert mobilier + matériel vers déchèterie", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-007", "site": "Malmedonne", "action": "Déménagement cartons vers salle polyvalente bâtiment 2", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-008", "site": "Malmedonne", "action": "Vider salles du CAP et salle de classe", "pilote": "S. Barbedette + A. DEM", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-009", "site": "Malmedonne", "action": "Préparation pièces pour travaux", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-010", "site": "Malmedonne", "action": "Travaux", "pilote": "Z. El Krimy / B. Domingues", "equipe": "Patrimoine + entreprise", "debut": "2026-07-15", "fin": "2026-08-07", "duree": 24, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-011", "site": "Malmedonne", "action": "Ménage post-travaux", "pilote": "C. Labouise", "equipe": "ESSI + équipe HR", "debut": "2026-08-10", "fin": "2026-08-13", "duree": 4, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-012", "site": "Malmedonne", "action": "Déplacement VPI/TNI et réinstallation du mobilier neuf", "pilote": "J. Matrat / L. Genet", "equipe": "Entreprise + équipe manut renforcée", "debut": "2026-08-12", "fin": "2026-08-17", "duree": 6, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-013", "site": "Malmedonne", "action": "Déménagement des cartons dans les salles de destination", "pilote": "S. Barbedette", "equipe": "Équipe manut renforcée", "debut": "2026-08-18", "fin": "2026-08-21", "duree": 4, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-014", "site": "Malmedonne", "action": "Livraison DPC pour trois classes neuves", "pilote": "L. Gé", "equipe": "L. Gé", "debut": "2026-08-17", "fin": "2026-08-17", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-015", "site": "Malmedonne", "action": "Installation des classes, aménagement", "pilote": "L. GE / directions écoles", "equipe": "EN + ATSEM", "debut": "2026-08-24", "fin": "2026-08-25", "duree": 2, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-016", "site": "Malmedonne", "action": "Rangement du matériel transféré depuis l'office Haute-Futaie", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-26", "fin": "2026-08-28", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-017", "site": "Malmedonne", "action": "Aménagement des différents espaces CLM", "pilote": "D. Ikhelf + A. Dem", "equipe": "Enfance", "debut": "2026-08-26", "fin": "2026-08-31", "duree": 6, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-018", "site": "Malmedonne", "action": "Ménage final", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-29", "fin": "2026-08-31", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-019", "site": "Malmedonne", "action": "Remise de clés et transpondeur nouvelle équipe avec installation nouvelle serrure sur porte cassée", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-29", "fin": "2026-08-31", "duree": 3, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-020", "site": "Malmedonne", "action": "Visite aux parents d'élèves élus 9h-10h", "pilote": "Y. Kerauffret + D. Ikhelf", "equipe": "YK", "debut": "2026-08-28", "fin": "2026-08-28", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-021", "site": "CLP", "action": "Préparation des cartons et inventaire CLP", "pilote": "D. Ikhelf + M. Kerchouche", "equipe": "Enfance + équipe CLP", "debut": "2026-06-24", "fin": "2026-07-03", "duree": 10, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-022", "site": "CLP", "action": "Fermeture opérationnelle du CLP", "pilote": "D. Ikhelf", "equipe": "Enfance", "debut": "2026-07-06", "fin": "2026-07-06", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-023", "site": "CLP", "action": "Déménagement CLP vers Atelier des loisirs", "pilote": "S. Barbedette", "equipe": "Équipe logistique + Enfance (anims)", "debut": null, "fin": null, "duree": null, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-024", "site": "CAP Chapiteau", "action": "Préparation cartons + tri", "pilote": "D. Ikhelf A. Dem", "equipe": "équipe anim", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "Pendant les vacances en automie équipes", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-025", "site": "CAP La Tour", "action": "Préparation cartons + tri", "pilote": "D. Ikhelf A. Dem", "equipe": "équipe anim", "debut": "2026-06-06", "fin": "2026-07-09", "duree": 34, "consigne": "Pendant les vacances en automie équipes", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-026", "site": "Atelier des loisirs", "action": "Préparation des espaces d'accueil", "pilote": "À compléter", "equipe": "Enfance + bâtiments", "debut": "2026-07-16", "fin": "2026-07-23", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-027", "site": "Atelier des loisirs", "action": "Livraison, Montage, implantation et contrôle mobilier", "pilote": "Y. Kerauffret", "equipe": "YK + DPC", "debut": "2026-07-24", "fin": "2026-07-31", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-028", "site": "Atelier des loisirs", "action": "Nettoyage et remise en état avant reprise", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-17", "fin": "2026-08-21", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-029", "site": "Atelier des loisirs", "action": "Préparation pédagogique et installation fin d'été", "pilote": "D. Ikhelf M. Kerchouche", "equipe": "Équipe Enfance", "debut": "2026-08-24", "fin": "2026-08-31", "duree": 8, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-030", "site": "Atelier des loisirs", "action": "Comission Sécurité", "pilote": "Y. Kerauffret", "equipe": "YK", "debut": "2026-09-01", "fin": "2026-09-01", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-031", "site": "Atelier des loisirs", "action": "Inauguration le 12 septembre", "pilote": "À compléter", "equipe": "Cabinet + communication + Enfance", "debut": "2026-09-01", "fin": "2026-09-01", "duree": 1, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-032", "site": "Bessières", "action": "Identifier local, mobilier à déplacer et besoins matériels", "pilote": "À compléter", "equipe": "Éducation + direction école", "debut": "2026-06-29", "fin": "2026-07-03", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-033", "site": "Bessières", "action": "Déplacements internes et installation mobilier", "pilote": "À compléter", "equipe": "Logistique + école", "debut": "2026-07-06", "fin": "2026-07-10", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}, {"id": "T-034", "site": "Bessières", "action": "Ménage et vérification ouverture classe", "pilote": "C. Labouise", "equipe": "Équipe HR", "debut": "2026-08-24", "fin": "2026-08-28", "duree": 5, "consigne": "", "statut": "À faire", "priorite": "Moyenne", "maj": ""}], "conges": [{"personne": "(exemple) Sophie B.", "du": "2026-07-20", "au": "2026-08-10", "remplacant": "Marc", "remarque": "Joindre en cas d'urgence livraison"}]};
+/* ============================================================
+   DONNÉES INITIALES (issues du Gantt « croisé été 2026 »)
+   34 tâches réparties sur 7 sites, du 6 juin au 1er septembre.
+   Note : les couleurs sont surchargées par siteColor() pour
+   garantir la cohérence visuelle, même si un état localStorage
+   existant contient d'anciennes couleurs.
+   ============================================================ */
+const SEED = {"meta":{"titre":"Suivi de l'été 2026","periode":"6 juin → 1er septembre 2026","source":"Gantt croisé été 2026"},"statuts":["À faire","En cours","Fait","Jalon"],"priorites":["Faible","Moyenne","Haute","Critique"],"services":["Équipe manut renforcée","Équipe HR","Enfance","EN + ATSEM","Patrimoine + entreprise","Fournisseur","DSI / VPI-TNI"],"chantiers":[{"nom":"Haute-Futaie","nb":4,"debut":"2026-06-06","fin":"2026-07-24"},{"nom":"Malmedonne","nb":16,"debut":"2026-06-06","fin":"2026-08-31"},{"nom":"CLP","nb":3,"debut":"2026-06-24","fin":"2026-07-06"},{"nom":"CAP Chapiteau","nb":1,"debut":"2026-06-06","fin":"2026-07-09"},{"nom":"CAP La Tour","nb":1,"debut":"2026-06-06","fin":"2026-07-09"},{"nom":"Atelier des loisirs","nb":6,"debut":"2026-07-16","fin":"2026-09-01"},{"nom":"Bessières","nb":3,"debut":"2026-06-29","fin":"2026-08-28"}],"taches":[{"id":"T-001","site":"Haute-Futaie","action":"Préparation cartons + tri","pilote":"L. Gé  HF","equipe":"EN + ATSEM","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-002","site":"Haute-Futaie","action":"Déménagement cartons + mobilier vers RDC Malmedonne","pilote":"S. Barbedette +A, Dem","equipe":"Équipe manut renforcée","debut":"2026-07-13","fin":"2026-07-24","duree":12,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-003","site":"Haute-Futaie","action":"Déménagement mobilier vers autres écoles","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-07-13","fin":"2026-07-24","duree":12,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-004","site":"Haute-Futaie","action":"Transfert mobilier + matériel vers déchèterie","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-07-13","fin":"2026-07-24","duree":12,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-005","site":"Malmedonne","action":"Préparation cartons + tri","pilote":"L. Gé / D. Ikhelf","equipe":"EN + Anim + A. Dem","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-006","site":"Malmedonne","action":"Transfert mobilier + matériel vers déchèterie","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-007","site":"Malmedonne","action":"Déménagement cartons vers salle polyvalente bâtiment 2","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-008","site":"Malmedonne","action":"Vider salles du CAP et salle de classe","pilote":"S. Barbedette + A. DEM","equipe":"Équipe manut renforcée","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-009","site":"Malmedonne","action":"Préparation pièces pour travaux","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-010","site":"Malmedonne","action":"Travaux","pilote":"Z. El Krimy / B. Domingues","equipe":"Patrimoine + entreprise","debut":"2026-07-15","fin":"2026-08-07","duree":24,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-011","site":"Malmedonne","action":"Ménage post-travaux","pilote":"C. Labouise","equipe":"ESSI + équipe HR","debut":"2026-08-10","fin":"2026-08-13","duree":4,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-012","site":"Malmedonne","action":"Déplacement VPI/TNI et réinstallation du mobilier neuf","pilote":"J. Matrat / L. Genet","equipe":"Entreprise + équipe manut renforcée","debut":"2026-08-12","fin":"2026-08-17","duree":6,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-013","site":"Malmedonne","action":"Déménagement des cartons dans les salles de destination","pilote":"S. Barbedette","equipe":"Équipe manut renforcée","debut":"2026-08-18","fin":"2026-08-21","duree":4,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-014","site":"Malmedonne","action":"Livraison DPC pour trois classes neuves","pilote":"L. Gé","equipe":"L. Gé","debut":"2026-08-17","fin":"2026-08-17","duree":1,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-015","site":"Malmedonne","action":"Installation des classes, aménagement","pilote":"L. GE / directions écoles","equipe":"EN + ATSEM","debut":"2026-08-24","fin":"2026-08-25","duree":2,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-016","site":"Malmedonne","action":"Rangement du matériel transféré depuis l'office Haute-Futaie","pilote":"C. Labouise","equipe":"Équipe HR","debut":"2026-08-26","fin":"2026-08-28","duree":3,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-017","site":"Malmedonne","action":"Aménagement des différents espaces CLM","pilote":"D. Ikhelf + A. Dem","equipe":"Enfance","debut":"2026-08-26","fin":"2026-08-31","duree":6,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-018","site":"Malmedonne","action":"Ménage final","pilote":"C. Labouise","equipe":"Équipe HR","debut":"2026-08-29","fin":"2026-08-31","duree":3,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-019","site":"Malmedonne","action":"Remise de clés et transpondeur nouvelle équipe avec installation nouvelle serrure sur porte cassée","pilote":"C. Labouise","equipe":"Équipe HR","debut":"2026-08-29","fin":"2026-08-31","duree":3,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-020","site":"Malmedonne","action":"Visite aux parents d'élèves élus 9h-10h","pilote":"Y. Kerauffret + D. Ikhelf","equipe":"YK","debut":"2026-08-28","fin":"2026-08-28","duree":1,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-021","site":"CLP","action":"Préparation des cartons et inventaire CLP","pilote":"D. Ikhelf + M. Kerchouche","equipe":"Enfance + équipe CLP","debut":"2026-06-24","fin":"2026-07-03","duree":10,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-022","site":"CLP","action":"Fermeture opérationnelle du CLP","pilote":"D. Ikhelf","equipe":"Enfance","debut":"2026-07-06","fin":"2026-07-06","duree":1,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-023","site":"CLP","action":"Déménagement CLP vers Atelier des loisirs","pilote":"S. Barbedette","equipe":"Équipe logistique + Enfance (anims)","debut":null,"fin":null,"duree":null,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-024","site":"CAP Chapiteau","action":"Préparation cartons + tri","pilote":"D. Ikhelf A. Dem","equipe":"équipe anim","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"Pendant les vacances en automie équipes","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-025","site":"CAP La Tour","action":"Préparation cartons + tri","pilote":"D. Ikhelf A. Dem","equipe":"équipe anim","debut":"2026-06-06","fin":"2026-07-09","duree":34,"consigne":"Pendant les vacances en automie équipes","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-026","site":"Atelier des loisirs","action":"Préparation des espaces d'accueil","pilote":"À compléter","equipe":"Enfance + bâtiments","debut":"2026-07-16","fin":"2026-07-23","duree":8,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-027","site":"Atelier des loisirs","action":"Livraison, Montage, implantation et contrôle mobilier","pilote":"Y. Kerauffret","equipe":"YK + DPC","debut":"2026-07-24","fin":"2026-07-31","duree":8,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-028","site":"Atelier des loisirs","action":"Nettoyage et remise en état avant reprise","pilote":"C. Labouise","equipe":"Équipe HR","debut":"2026-08-17","fin":"2026-08-21","duree":5,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-029","site":"Atelier des loisirs","action":"Préparation pédagogique et installation fin d'été","pilote":"D. Ikhelf M. Kerchouche","equipe":"Équipe Enfance","debut":"2026-08-24","fin":"2026-08-31","duree":8,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-030","site":"Atelier des loisirs","action":"Comission Sécurité","pilote":"Y. Kerauffret","equipe":"YK","debut":"2026-09-01","fin":"2026-09-01","duree":1,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-031","site":"Atelier des loisirs","action":"Inauguration le 12 septembre","pilote":"À compléter","equipe":"Cabinet + communication + Enfance","debut":"2026-09-01","fin":"2026-09-01","duree":1,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-032","site":"Bessières","action":"Identifier local, mobilier à déplacer et besoins matériels","pilote":"À compléter","equipe":"Éducation + direction école","debut":"2026-06-29","fin":"2026-07-03","duree":5,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-033","site":"Bessières","action":"Déplacements internes et installation mobilier","pilote":"À compléter","equipe":"Logistique + école","debut":"2026-07-06","fin":"2026-07-10","duree":5,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""},{"id":"T-034","site":"Bessières","action":"Ménage et vérification ouverture classe","pilote":"C. Labouise","equipe":"Équipe HR","debut":"2026-08-24","fin":"2026-08-28","duree":5,"consigne":"","statut":"À faire","priorite":"Moyenne","maj":""}],"conges":[{"personne":"(exemple) Sophie B.","du":"2026-07-20","au":"2026-08-10","remplacant":"Marc","remarque":"Joindre en cas d'urgence livraison"}]};
+
 const STORE_KEY = 'suivi_ete_2026';
-const STATUS_COLORS = {'À faire':'var(--afaire)','En cours':'var(--encours)','Fait':'var(--fait)','Jalon':'var(--jalon)'};
+
+/* Map des couleurs par chantier — pilotée par CSS variables.
+   Cohérence visuelle garantie indépendamment du SEED. */
+const SITE_COLORS = {
+  'Malmedonne':       'var(--ch-malmedonne)',
+  'Atelier des loisirs':'var(--ch-atelier)',
+  'Haute-Futaie':     'var(--ch-haute-futaie)',
+  'CLP':              'var(--ch-clp)',
+  'CAP Chapiteau':    'var(--ch-cap-chapiteau)',
+  'CAP La Tour':      'var(--ch-cap-latour)',
+  'Bessières':        'var(--ch-bessieres)'
+};
+function siteColor(name){ return SITE_COLORS[name] || 'var(--ch-default)'; }
 
 let state = load();
 function load(){
-  try{const s=localStorage.getItem(STORE_KEY); if(s) return JSON.parse(s);}catch(e){}
+  try{ const s=localStorage.getItem(STORE_KEY); if(s) return JSON.parse(s); }catch(e){}
   return structuredClone(SEED);
 }
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 function today(){ return new Date().toISOString().slice(0,10); }
 function fmtDate(d){ if(!d) return '—'; const [y,m,j]=d.split('-'); return `${j}/${m}`; }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* ---------- Navigation ---------- */
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+/* ============================================================
+   NAVIGATION ONGLETS
+   ============================================================ */
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
   ['taches','chantiers','conges','assistant'].forEach(t=>
     document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
+  window.scrollTo({top:0,behavior:'smooth'});
 });
 
-/* ---------- Init filtres / listes déroulantes ---------- */
+/* ============================================================
+   INIT FILTRES / SELECTS
+   ============================================================ */
 document.getElementById('periode').textContent = state.meta.periode;
+
 function fillSelect(el, items, allLabel){
-  el.innerHTML = `<option value="">${allLabel}</option>` + items.map(i=>`<option>${i}</option>`).join('');
+  el.innerHTML = `<option value="">${allLabel}</option>` + items.map(i=>`<option>${escapeHtml(i)}</option>`).join('');
 }
 function pilotes(){ return [...new Set(state.taches.map(t=>t.pilote).filter(Boolean))].sort(); }
 function sites(){ return [...new Set(state.taches.map(t=>t.site))].sort(); }
 function refreshFilters(){
-  fillSelect(document.getElementById('f-site'), sites(), 'Tous les sites');
-  fillSelect(document.getElementById('f-statut'), state.statuts, 'Tous les statuts');
-  fillSelect(document.getElementById('f-pilote'), pilotes(), 'Tous les pilotes');
+  fillSelect(document.getElementById('f-site'),   sites(),         'Tous les chantiers');
+  fillSelect(document.getElementById('f-statut'), state.statuts,   'Tous les statuts');
+  fillSelect(document.getElementById('f-pilote'), pilotes(),       'Tous les pilotes');
   fillSelect(document.getElementById('t-priorite'), state.priorites, '');
 }
 
-/* ---------- Tâches ---------- */
+/* ============================================================
+   STATS HEADER + COMPTEUR DE LISTE
+   ============================================================ */
+function renderHeaderStats(){
+  const done = state.taches.filter(t=>t.statut==='Fait').length;
+  const prog = state.taches.filter(t=>t.statut==='En cours').length;
+  const total = state.taches.length;
+  document.getElementById('header-stats').innerHTML = `
+    <span class="stat-pill"><span class="dot done"></span>${done}/${total} faites</span>
+    ${prog?`<span class="stat-pill"><span class="dot prog"></span>${prog} en cours</span>`:''}
+  `;
+}
+
+/* ============================================================
+   TÂCHES — rendu de la liste
+   ============================================================ */
 ['search','f-site','f-statut','f-pilote'].forEach(id=>
   document.getElementById(id).addEventListener('input', renderTaches));
 
@@ -218,151 +952,291 @@ function renderTaches(){
     if(fs&&t.site!==fs) return false;
     if(fst&&t.statut!==fst) return false;
     if(fp&&t.pilote!==fp) return false;
-    if(q){ const blob=(t.site+' '+t.action+' '+t.pilote+' '+t.equipe+' '+t.consigne).toLowerCase(); if(!blob.includes(q)) return false; }
+    if(q){
+      const blob=(t.site+' '+t.action+' '+t.pilote+' '+t.equipe+' '+t.consigne).toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
     return true;
   });
-  document.getElementById('taches-count').textContent = `${list.length} tâche(s) affichée(s) sur ${state.taches.length}`;
-  const c=getColors();
-  document.getElementById('taches-list').innerHTML = list.map(t=>{
-    const col=c[t.site]||'#334155';
-    const sts=state.statuts.map(s=>`<span class="stbtn ${s===t.statut?'on':''}" style="${s===t.statut?`background:${STATUS_COLORS[s]}`:''}" onclick="setStatut('${t.id}','${s}')">${s}</span>`).join('');
-    return `<div class="card">
-      <div class="top">
-        <span class="chip" style="background:${col}">${t.site}</span>
-        <span class="muted" style="font-size:12px">${t.id} · ${t.priorite}</span>
-        <button class="btn ghost sm" style="margin-left:auto" onclick="editTache('${t.id}')">Modifier</button>
-      </div>
-      <div class="action">${t.action}</div>
-      <div class="meta">
-        <span><b>${t.pilote||'—'}</b></span>
-        <span>${t.equipe||''}</span>
-        <span>📅 ${fmtDate(t.debut)} → ${fmtDate(t.fin)}</span>
-      </div>
-      <div class="statusrow">${sts}</div>
-      <div class="relais">
-        <label>Consigne de relais</label>
-        <textarea onchange="setConsigne('${t.id}',this.value)" placeholder="Laisse une consigne pour le suivant…">${t.consigne||''}</textarea>
-      </div>
-      ${t.maj?`<div class="muted" style="font-size:11px;margin-top:6px">Dernière mise à jour : ${t.maj}</div>`:''}
-    </div>`;
-  }).join('') || `<div class="empty">Aucune tâche ne correspond aux filtres.</div>`;
-}
-function getColors(){ const m={}; state.chantiers.forEach(c=>m[c.nom]=c.couleur); return m; }
-window.setStatut=(id,s)=>{ const t=state.taches.find(x=>x.id===id); t.statut=s; t.maj=`${today()}`; save(); renderTaches(); renderChantiers(); };
-window.setConsigne=(id,v)=>{ const t=state.taches.find(x=>x.id===id); t.consigne=v; t.maj=`${today()}`; save(); };
+  const doneCount = list.filter(t=>t.statut==='Fait').length;
+  const progCount = list.filter(t=>t.statut==='En cours').length;
+  document.getElementById('taches-count').innerHTML =
+    `<span><strong>${list.length}</strong> tâche${list.length>1?'s':''} sur ${state.taches.length}</span>`+
+    (doneCount?`<span class="mini-stat done">✓ ${doneCount} fait${doneCount>1?'es':''}</span>`:'')+
+    (progCount?`<span class="mini-stat prog">● ${progCount} en cours</span>`:'');
 
+  document.getElementById('taches-list').innerHTML = list.map(t=>{
+    const col = siteColor(t.site);
+    const sts = state.statuts.map(s=>
+      `<button class="st-btn ${s===t.statut?'on':''}" data-st="${s}" onclick="setStatut('${t.id}','${s}')">${s}</button>`
+    ).join('');
+    const prioCls = (t.priorite||'').toLowerCase();
+    return `<div class="task" style="--site-color:${col}">
+      <div class="head">
+        <span class="site-chip">${escapeHtml(t.site)}</span>
+        <span class="id">${t.id}</span>
+        ${t.priorite && t.priorite!=='Moyenne' ? `<span class="prio ${prioCls}">${t.priorite}</span>`:''}
+        <button class="edit-btn" onclick="editTache('${t.id}')">Modifier</button>
+      </div>
+      <div class="action">${escapeHtml(t.action)}</div>
+      <div class="meta">
+        ${t.pilote?`<span class="item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><b>${escapeHtml(t.pilote)}</b></span>`:''}
+        ${t.equipe?`<span class="item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>${escapeHtml(t.equipe)}</span>`:''}
+        <span class="item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>${fmtDate(t.debut)} → ${fmtDate(t.fin)}</span>
+      </div>
+      <div class="status-row">${sts}</div>
+      <div class="relais">
+        <div class="lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Consigne de relais</div>
+        <textarea onchange="setConsigne('${t.id}',this.value)" placeholder="Laisse une consigne pour le ou la collègue qui prendra la suite…">${escapeHtml(t.consigne||'')}</textarea>
+      </div>
+      ${t.maj?`<div class="maj">🕒 Mise à jour : ${escapeHtml(t.maj)}</div>`:''}
+    </div>`;
+  }).join('') || `<div class="empty"><span class="em">🔍</span>Aucune tâche ne correspond aux filtres.</div>`;
+}
+
+window.setStatut=(id,s)=>{
+  const t=state.taches.find(x=>x.id===id);
+  t.statut=s; t.maj=today();
+  save();
+  renderTaches(); renderChantiers(); renderHeaderStats();
+};
+window.setConsigne=(id,v)=>{
+  const t=state.taches.find(x=>x.id===id);
+  t.consigne=v; t.maj=today();
+  save();
+};
+
+/* Édition / création de tâche via le dialog */
 let editingId=null;
 window.editTache=(id)=>{
-  editingId=id; const t=state.taches.find(x=>x.id===id);
+  editingId=id;
+  const t=state.taches.find(x=>x.id===id);
   document.getElementById('dlg-title').textContent='Modifier la tâche';
-  t_site.value=t.site; t_action.value=t.action; t_pilote.value=t.pilote;
-  t_equipe.value=t.equipe; t_debut.value=t.debut||''; t_fin.value=t.fin||''; t_priorite.value=t.priorite;
+  document.getElementById('t-site').value=t.site;
+  document.getElementById('t-action').value=t.action;
+  document.getElementById('t-pilote').value=t.pilote;
+  document.getElementById('t-equipe').value=t.equipe;
+  document.getElementById('t-debut').value=t.debut||'';
+  document.getElementById('t-fin').value=t.fin||'';
+  document.getElementById('t-priorite').value=t.priorite;
   document.getElementById('t-delete').classList.remove('hidden');
   document.getElementById('dlg-tache').showModal();
 };
 document.getElementById('add-tache').onclick=()=>{
   editingId=null;
   document.getElementById('dlg-title').textContent='Nouvelle tâche';
-  t_site.value=''; t_action.value=''; t_pilote.value=''; t_equipe.value=''; t_debut.value=''; t_fin.value=''; t_priorite.value='Moyenne';
+  ['t-site','t-action','t-pilote','t-equipe','t-debut','t-fin'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('t-priorite').value='Moyenne';
   document.getElementById('t-delete').classList.add('hidden');
   document.getElementById('dlg-tache').showModal();
 };
 document.getElementById('dlg-tache').addEventListener('close', function(){
   const v=this.returnValue;
+  const val = id => document.getElementById(id).value;
   if(v==='save'){
-    if(editingId){ const t=state.taches.find(x=>x.id===editingId);
-      Object.assign(t,{site:t_site.value.trim(),action:t_action.value.trim(),pilote:t_pilote.value.trim(),equipe:t_equipe.value.trim(),debut:t_debut.value||null,fin:t_fin.value||null,priorite:t_priorite.value,maj:today()});
+    if(editingId){
+      const t=state.taches.find(x=>x.id===editingId);
+      Object.assign(t,{
+        site:val('t-site').trim(), action:val('t-action').trim(),
+        pilote:val('t-pilote').trim(), equipe:val('t-equipe').trim(),
+        debut:val('t-debut')||null, fin:val('t-fin')||null,
+        priorite:val('t-priorite'), maj:today()
+      });
     } else {
-      const n=state.taches.length+1;
-      state.taches.push({id:'T-'+String(Date.now()).slice(-4),site:t_site.value.trim()||'Divers',action:t_action.value.trim(),pilote:t_pilote.value.trim(),equipe:t_equipe.value.trim(),debut:t_debut.value||null,fin:t_fin.value||null,duree:null,statut:'À faire',priorite:t_priorite.value,consigne:'',maj:today()});
+      state.taches.push({
+        id:'T-'+String(Date.now()).slice(-4),
+        site:val('t-site').trim()||'Divers',
+        action:val('t-action').trim(),
+        pilote:val('t-pilote').trim(),
+        equipe:val('t-equipe').trim(),
+        debut:val('t-debut')||null,
+        fin:val('t-fin')||null,
+        duree:null, statut:'À faire',
+        priorite:val('t-priorite'),
+        consigne:'', maj:today()
+      });
     }
     rebuildChantiers(); save(); refreshFilters(); renderAll();
   } else if(v==='delete' && editingId){
-    state.taches=state.taches.filter(x=>x.id!==editingId); rebuildChantiers(); save(); refreshFilters(); renderAll();
+    state.taches=state.taches.filter(x=>x.id!==editingId);
+    rebuildChantiers(); save(); refreshFilters(); renderAll();
   }
 });
 
-/* ---------- Chantiers ---------- */
+/* ============================================================
+   CHANTIERS — grille vignettes
+   ============================================================ */
 function rebuildChantiers(){
   const map={};
   state.taches.forEach(t=>{
-    const c=map[t.site]||(map[t.site]={nom:t.site,nb:0,debut:null,fin:null,couleur:(state.chantiers.find(x=>x.nom===t.site)||{}).couleur||'#334155'});
+    const c=map[t.site]||(map[t.site]={nom:t.site,nb:0,debut:null,fin:null});
     c.nb++;
     [t.debut,t.fin].forEach(d=>{ if(d){ if(!c.debut||d<c.debut)c.debut=d; if(!c.fin||d>c.fin)c.fin=d; }});
   });
   state.chantiers=Object.values(map);
 }
 function renderChantiers(){
+  const totalDone = state.taches.filter(t=>t.statut==='Fait').length;
+  const totalTasks = state.taches.length;
+  const totalPct = totalTasks?Math.round(totalDone/totalTasks*100):0;
+  document.getElementById('chantiers-summary').innerHTML =
+    `<span><strong>${state.chantiers.length}</strong> chantiers · <strong>${totalTasks}</strong> tâches</span>`+
+    `<span class="mini-stat done">${totalPct}% globalement</span>`;
   document.getElementById('chantiers-list').innerHTML = state.chantiers.map(c=>{
     const ts=state.taches.filter(t=>t.site===c.nom);
     const done=ts.filter(t=>t.statut==='Fait').length;
+    const prog=ts.filter(t=>t.statut==='En cours').length;
     const pct=ts.length?Math.round(done/ts.length*100):0;
-    return `<div class="card">
-      <div class="top"><span class="chip" style="background:${c.couleur}">${c.nom}</span>
-      <span class="muted" style="margin-left:auto;font-size:13px">${done}/${ts.length} faites</span></div>
-      <div class="progress"><div style="width:${pct}%"></div></div>
-      <div class="meta"><span>📅 ${fmtDate(c.debut)} → ${fmtDate(c.fin)}</span><span><b>${pct}%</b></span></div>
+    const col = siteColor(c.nom);
+    return `<div class="ch-card" style="--site-color:${col}" onclick="filterBySite('${escapeHtml(c.nom)}')">
+      <div class="banner"></div>
+      <div class="body">
+        <h3>${escapeHtml(c.nom)}</h3>
+        <div class="meta-line">
+          <span>${ts.length} tâche${ts.length>1?'s':''}${prog?` · ${prog} en cours`:''}</span>
+          <span>${fmtDate(c.debut)} → ${fmtDate(c.fin)}</span>
+        </div>
+        <div class="bar"><div style="width:${pct}%"></div></div>
+        <div class="footer-line">
+          <span>${done} / ${ts.length} terminée${done>1?'s':''}</span>
+          <span class="pct">${pct}%</span>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
+window.filterBySite=(name)=>{
+  document.querySelector('nav.tabs button[data-tab="taches"]').click();
+  document.getElementById('f-site').value=name;
+  renderTaches();
+};
 
-/* ---------- Congés ---------- */
+/* ============================================================
+   CONGÉS
+   ============================================================ */
 let editingConge=null;
+function congeTag(c){
+  if(!c.du||!c.au) return '';
+  const now=today();
+  if(c.au<now) return `<span class="tag past">Passé</span>`;
+  if(c.du<=now && c.au>=now) return `<span class="tag now">En cours</span>`;
+  return `<span class="tag soon">À venir</span>`;
+}
+function initials(name){
+  return (name||'?').replace(/[()]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+}
 function renderConges(){
   const el=document.getElementById('conges-list');
-  if(!state.conges.length){ el.innerHTML=`<div class="empty">Aucun congé enregistré.</div>`; return; }
-  el.innerHTML = state.conges.map((c,i)=>`<div class="card">
-    <div class="top"><b>${c.personne}</b>
-    <button class="btn ghost sm" style="margin-left:auto" onclick="editConge(${i})">Modifier</button></div>
-    <div class="meta" style="margin-top:6px"><span>🏖️ ${fmtDate(c.du)} → ${fmtDate(c.au)}</span>
-    ${c.remplacant?`<span>Remplaçant·e : <b>${c.remplacant}</b></span>`:''}</div>
-    ${c.remarque?`<div class="muted" style="margin-top:4px">${c.remarque}</div>`:''}
-  </div>`).join('');
+  if(!state.conges.length){
+    el.innerHTML=`<div class="empty"><span class="em">🏖️</span>Aucun congé enregistré pour l'instant.</div>`;
+    return;
+  }
+  const sorted=[...state.conges].sort((a,b)=>(a.du||'').localeCompare(b.du||''));
+  el.innerHTML = sorted.map((c)=>{
+    const i=state.conges.indexOf(c);
+    return `<div class="leave">
+      <div class="avatar">${initials(c.personne)}</div>
+      <div class="body">
+        <div class="top">
+          <span class="name">${escapeHtml(c.personne)}</span>
+          ${congeTag(c)}
+          <button class="edit-btn" style="margin-left:auto" onclick="editConge(${i})">Modifier</button>
+        </div>
+        <div class="dates">
+          <span>Du <b>${fmtDate(c.du)}</b> au <b>${fmtDate(c.au)}</b></span>
+        </div>
+        ${c.remplacant?`<div class="remplacant">Remplaçant·e : <b>${escapeHtml(c.remplacant)}</b></div>`:''}
+        ${c.remarque?`<div class="remarque">${escapeHtml(c.remarque)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
 }
-window.editConge=(i)=>{ editingConge=i; const c=state.conges[i];
-  c_personne.value=c.personne;c_du.value=c.du||'';c_au.value=c.au||'';c_remplacant.value=c.remplacant||'';c_remarque.value=c.remarque||'';
+window.editConge=(i)=>{
+  editingConge=i;
+  const c=state.conges[i];
+  document.getElementById('c-personne').value=c.personne;
+  document.getElementById('c-du').value=c.du||'';
+  document.getElementById('c-au').value=c.au||'';
+  document.getElementById('c-remplacant').value=c.remplacant||'';
+  document.getElementById('c-remarque').value=c.remarque||'';
   document.getElementById('c-delete').classList.remove('hidden');
   document.getElementById('dlg-conge').showModal();
 };
-document.getElementById('add-conge').onclick=()=>{ editingConge=null;
-  c_personne.value='';c_du.value='';c_au.value='';c_remplacant.value='';c_remarque.value='';
+document.getElementById('add-conge').onclick=()=>{
+  editingConge=null;
+  ['c-personne','c-du','c-au','c-remplacant','c-remarque'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('c-delete').classList.add('hidden');
   document.getElementById('dlg-conge').showModal();
 };
 document.getElementById('dlg-conge').addEventListener('close', function(){
   const v=this.returnValue;
-  if(v==='save'){ const obj={personne:c_personne.value.trim(),du:c_du.value||null,au:c_au.value||null,remplacant:c_remplacant.value.trim(),remarque:c_remarque.value.trim()};
-    if(editingConge!==null) state.conges[editingConge]=obj; else state.conges.push(obj);
-  } else if(v==='delete' && editingConge!==null){ state.conges.splice(editingConge,1); }
+  const val=id=>document.getElementById(id).value;
+  if(v==='save'){
+    const obj={
+      personne:val('c-personne').trim(),
+      du:val('c-du')||null,
+      au:val('c-au')||null,
+      remplacant:val('c-remplacant').trim(),
+      remarque:val('c-remarque').trim()
+    };
+    if(editingConge!==null) state.conges[editingConge]=obj;
+    else state.conges.push(obj);
+  } else if(v==='delete' && editingConge!==null){
+    state.conges.splice(editingConge,1);
+  }
   if(v!=='cancel'){ save(); renderConges(); }
 });
 
-/* ---------- Assistant (OpenRouter) ---------- */
-document.getElementById('or-key').value = localStorage.getItem('or_key')||'';
-document.getElementById('or-model').value = localStorage.getItem('or_model')||'anthropic/claude-3.5-sonnet';
+/* ============================================================
+   ASSISTANT (OpenRouter)
+   ============================================================ */
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.5';
+document.getElementById('or-key').value   = localStorage.getItem('or_key')||'';
+document.getElementById('or-model').value = localStorage.getItem('or_model')||DEFAULT_MODEL;
 document.getElementById('save-settings').onclick=()=>{
-  localStorage.setItem('or_key',document.getElementById('or-key').value.trim());
-  localStorage.setItem('or_model',document.getElementById('or-model').value.trim());
+  localStorage.setItem('or_key',   document.getElementById('or-key').value.trim());
+  localStorage.setItem('or_model', document.getElementById('or-model').value.trim());
   document.getElementById('ai-settings').open=false;
   addMsg('sys','Réglages enregistrés ✅');
 };
-function addMsg(role,text){ const d=document.createElement('div'); d.className='msg '+role; d.textContent=text; document.getElementById('chat').appendChild(d); d.scrollIntoView(); return d; }
+function addMsg(role,text){
+  const d=document.createElement('div');
+  d.className='msg '+role;
+  d.textContent=text;
+  document.getElementById('chat').appendChild(d);
+  d.scrollIntoView({behavior:'smooth',block:'end'});
+  return d;
+}
+function addThinking(){
+  const d=document.createElement('div');
+  d.className='msg bot thinking';
+  d.innerHTML='<span class="d"></span><span class="d"></span><span class="d"></span>';
+  document.getElementById('chat').appendChild(d);
+  d.scrollIntoView({behavior:'smooth',block:'end'});
+  return d;
+}
 function memorySummary(){
   const t=state.taches.map(x=>({id:x.id,site:x.site,action:x.action,pilote:x.pilote,equipe:x.equipe,debut:x.debut,fin:x.fin,statut:x.statut,priorite:x.priorite,consigne:x.consigne}));
   return JSON.stringify({date_du_jour:today(),taches:t,conges:state.conges,chantiers:state.chantiers.map(c=>c.nom)});
 }
-document.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
+document.querySelectorAll('.suggest button').forEach(b=>b.onclick=()=>sendChat(b.dataset.q));
 document.getElementById('chat-send').onclick=()=>sendChat();
 document.getElementById('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') sendChat(); });
 
 async function sendChat(forced){
   const input=document.getElementById('chat-input');
-  const text=(forced||input.value).trim(); if(!text) return;
+  const text=(forced||input.value).trim();
+  if(!text) return;
   if(!forced) input.value='';
-  const key=localStorage.getItem('or_key'); const model=localStorage.getItem('or_model')||'anthropic/claude-3.5-sonnet';
+  const key=localStorage.getItem('or_key');
+  const model=localStorage.getItem('or_model')||DEFAULT_MODEL;
   addMsg('user',text);
-  if(!key){ addMsg('sys','Ajoute d\'abord ta clé OpenRouter dans ⚙️ Réglages pour activer l\'assistant.'); document.getElementById('ai-settings').open=true; return; }
-  const thinking=addMsg('bot','…');
+  if(!key){
+    addMsg('sys','Ajoute d\'abord ta clé OpenRouter dans les réglages ci-dessus pour activer l\'assistant.');
+    document.getElementById('ai-settings').open=true;
+    return;
+  }
+  const thinking=addThinking();
   const system=`Tu es l'assistant de suivi de l'été 2026 d'une direction de services (écoles, accueils de loisirs). `+
     `Tu réponds en français, de façon concise et opérationnelle. Tu t'appuies UNIQUEMENT sur la mémoire fournie (JSON). `+
     `Tu peux faire des récaps (par statut, par site/chantier, par pilote), répondre aux questions, repérer les consignes de relais et les points en suspens. `+
@@ -375,27 +1249,62 @@ async function sendChat(forced){
       body:JSON.stringify({model,messages:[{role:'system',content:system},{role:'user',content:text}]})
     });
     const data=await r.json();
-    if(!r.ok){ thinking.className='msg sys'; thinking.textContent='Erreur OpenRouter : '+(data.error?.message||r.status); return; }
+    thinking.classList.remove('thinking');
+    thinking.innerHTML='';
+    if(!r.ok){
+      thinking.className='msg sys';
+      thinking.textContent='Erreur OpenRouter : '+(data.error?.message||r.status);
+      return;
+    }
     thinking.textContent=data.choices?.[0]?.message?.content||'(réponse vide)';
-  }catch(e){ thinking.className='msg sys'; thinking.textContent='Connexion impossible à OpenRouter ('+e.message+'). Astuce : l\'assistant marche mieux quand la page est hébergée (étape suivante).'; }
+  }catch(e){
+    thinking.className='msg sys';
+    thinking.textContent='Connexion impossible à OpenRouter ('+e.message+').';
+  }
 }
 
-/* ---------- Sauvegarde / import / reset ---------- */
+/* ============================================================
+   SAUVEGARDE / IMPORT / RESET
+   ============================================================ */
 document.getElementById('export').onclick=()=>{
   const blob=new Blob([JSON.stringify(state,null,1)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='suivi-ete-2026-sauvegarde.json'; a.click();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='suivi-ete-2026-sauvegarde.json';
+  a.click();
 };
 document.getElementById('import').onclick=()=>document.getElementById('import-file').click();
 document.getElementById('import-file').onchange=e=>{
-  const f=e.target.files[0]; if(!f) return; const rd=new FileReader();
-  rd.onload=()=>{ try{ state=JSON.parse(rd.result); save(); refreshFilters(); renderAll(); alert('Sauvegarde importée ✅'); }catch(err){ alert('Fichier invalide'); } };
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      state=JSON.parse(rd.result);
+      save(); refreshFilters(); renderAll();
+      alert('Sauvegarde importée ✅');
+    }catch(err){ alert('Fichier invalide'); }
+  };
   rd.readAsText(f);
 };
-document.getElementById('reset').onclick=()=>{ if(confirm('Réinitialiser avec les données d\'origine du Gantt ? Les modifications locales seront perdues.')){ state=structuredClone(SEED); save(); refreshFilters(); renderAll(); } };
+document.getElementById('reset').onclick=()=>{
+  if(confirm('Réinitialiser avec les données d\'origine du Gantt ? Les modifications locales seront perdues.')){
+    state=structuredClone(SEED);
+    save(); refreshFilters(); renderAll();
+  }
+};
 
-/* ---------- Render global ---------- */
-function renderAll(){ renderTaches(); renderChantiers(); renderConges(); }
-refreshFilters(); renderAll();
+/* ============================================================
+   RENDU GLOBAL
+   ============================================================ */
+function renderAll(){
+  renderHeaderStats();
+  renderTaches();
+  renderChantiers();
+  renderConges();
+}
+refreshFilters();
+rebuildChantiers();
+renderAll();
 </script>
 </body>
 </html>
