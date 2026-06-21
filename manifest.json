@@ -1,0 +1,20 @@
+{
+  "name": "Suivi été 2026",
+  "short_name": "Suivi É26",
+  "description": "Suivi partagé des chantiers et congés de l'été 2026",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c4f87",
+  "theme_color": "#0c4f87",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

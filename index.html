@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- PWA : permet l'installation sur l'écran d'accueil (iOS & Android) -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Suivi É26">
 <style>
 /* ============================================================
    PALETTE & TYPOGRAPHIE — inspirée de maurepas.fr
@@ -492,11 +499,6 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
     <p class="lead">Pour démarrer, colle le <strong>lien de connexion</strong> et le <strong>mot de passe</strong> qui t'ont été partagés.</p>
     <div id="config-err" class="err hidden"></div>
     <div class="field">
-      <label>Lien de connexion</label>
-      <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
-      <div class="help">Le lien commence par <code>https://script.google.com</code></div>
-    </div>
-    <div class="field">
       <label>Mot de passe</label>
       <input type="text" id="cfg-token" placeholder="ete2026" autocomplete="off">
     </div>
@@ -530,22 +532,23 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
    navigateur (localStorage). La clé OpenRouter reste exclusivement
    côté serveur (PropertiesService).
    ============================================================ */
-const BRIDGE_URL_KEY   = 'bridge_url';
+/* URL du pont Apps Script — en dur (n'est pas un secret : la sécurité
+   repose sur le mot de passe + le déploiement « Tout le monde »).
+   Si tu redéploies avec une nouvelle URL, change cette ligne et push. */
+const BRIDGE_URL       = 'https://script.google.com/macros/s/AKfycbzi4fHXTz_unLF_adkB7TfqUdl6T7Qpd3i5ClfdsxMqBzdCDx2NoYHolFl5EkN5IDox/exec';
 const BRIDGE_TOKEN_KEY = 'bridge_token';
 const ACTOR_KEY        = 'actor_name';
 
 function getBridge() {
   return {
-    url:   (localStorage.getItem(BRIDGE_URL_KEY)   || '').trim(),
+    url:   BRIDGE_URL,
     token: (localStorage.getItem(BRIDGE_TOKEN_KEY) || '').trim()
   };
 }
-function setBridge(url, token) {
-  localStorage.setItem(BRIDGE_URL_KEY,   url.trim());
-  localStorage.setItem(BRIDGE_TOKEN_KEY, token.trim());
+function setBridge(token) {
+  localStorage.setItem(BRIDGE_TOKEN_KEY, String(token||'').trim());
 }
 function clearBridge() {
-  localStorage.removeItem(BRIDGE_URL_KEY);
   localStorage.removeItem(BRIDGE_TOKEN_KEY);
 }
 function getActor()       { return (localStorage.getItem(ACTOR_KEY) || '').trim(); }
@@ -634,7 +637,6 @@ function showConfig(prefill) {
   document.getElementById('config-overlay').classList.remove('hidden');
   const cur = getBridge();
   const p = prefill || {};
-  document.getElementById('cfg-url').value   = (p.url   !== undefined) ? p.url   : cur.url;
   document.getElementById('cfg-token').value = (p.token !== undefined) ? p.token : (cur.token || 'ete2026');
   document.getElementById('cfg-actor').value = (p.actor !== undefined) ? p.actor : getActor();
   document.getElementById('config-err').classList.add('hidden');
@@ -644,13 +646,12 @@ function hideConfig() {
 }
 
 document.getElementById('cfg-go').onclick = async function() {
-  const url   = document.getElementById('cfg-url').value.trim();
   const token = document.getElementById('cfg-token').value.trim();
   const actor = document.getElementById('cfg-actor').value.trim();
   const err   = document.getElementById('config-err');
   err.classList.add('hidden');
-  if (!url || !token) {
-    err.textContent = 'Renseigne le lien et le mot de passe.';
+  if (!token) {
+    err.textContent = 'Renseigne le mot de passe.';
     err.classList.remove('hidden');
     return;
   }
@@ -663,11 +664,11 @@ document.getElementById('cfg-go').onclick = async function() {
   btn.textContent = 'Connexion…';
   btn.disabled = true;
   try {
-    const r = await fetch(url + '?op=state&token=' + encodeURIComponent(token));
+    const r = await fetch(BRIDGE_URL + '?op=state&token=' + encodeURIComponent(token));
     const data = await r.json();
     if (data.error) throw new Error(data.error);
     if (!Array.isArray(data.taches)) throw new Error('Réponse inattendue du serveur');
-    setBridge(url, token);
+    setBridge(token);
     setActor(actor);
     hideConfig();
     state = Object.assign(state, data);
@@ -684,10 +685,10 @@ document.getElementById('cfg-go').onclick = async function() {
 };
 
 document.getElementById('reset-config').onclick = function() {
-  if (!confirm('Tu vas devoir re-saisir le lien, le mot de passe et ton prénom. Continuer ?')) return;
+  if (!confirm('Tu vas devoir re-saisir le mot de passe et ton prénom. Continuer ?')) return;
   clearBridge();
   clearActor();
-  showConfig({ url: '', token: 'ete2026', actor: '' });
+  showConfig({ token: 'ete2026', actor: '' });
 };
 
 document.getElementById('rename-actor').onclick = function() {
