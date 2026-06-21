@@ -426,6 +426,7 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
           Si tu dois changer le lien partagé ou le mot de passe, clique ci-dessous.
         </div>
         <div class="actions">
+          <button class="btn ghost sm" id="rename-actor">Changer mon prénom</button>
           <button class="btn ghost sm" id="reset-config">Changer la configuration</button>
         </div>
       </details>
@@ -499,6 +500,11 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
       <label>Mot de passe</label>
       <input type="text" id="cfg-token" placeholder="ete2026" autocomplete="off">
     </div>
+    <div class="field">
+      <label>Ton prénom</label>
+      <input type="text" id="cfg-actor" placeholder="Sophie, Marc, Yannick…" autocomplete="off">
+      <div class="help">Pour signer tes mises à jour (ex. « 21/06 — Sophie »).</div>
+    </div>
     <div class="btn-row">
       <button class="btn block" id="cfg-go">Se connecter</button>
     </div>
@@ -526,6 +532,7 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
    ============================================================ */
 const BRIDGE_URL_KEY   = 'bridge_url';
 const BRIDGE_TOKEN_KEY = 'bridge_token';
+const ACTOR_KEY        = 'actor_name';
 
 function getBridge() {
   return {
@@ -541,6 +548,9 @@ function clearBridge() {
   localStorage.removeItem(BRIDGE_URL_KEY);
   localStorage.removeItem(BRIDGE_TOKEN_KEY);
 }
+function getActor()       { return (localStorage.getItem(ACTOR_KEY) || '').trim(); }
+function setActor(name)   { localStorage.setItem(ACTOR_KEY, String(name||'').trim()); }
+function clearActor()     { localStorage.removeItem(ACTOR_KEY); }
 
 /* Appel POST vers le pont.
    text/plain pour éviter le préflight CORS de Apps Script.
@@ -550,7 +560,7 @@ async function api(op, payload) {
   if (!url || !token) throw new Error('Connexion non configurée');
   setSync('busy');
   try {
-    const body = Object.assign({ op: op, token: token }, payload || {});
+    const body = Object.assign({ op: op, token: token, actor: getActor() }, payload || {});
     const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -626,6 +636,7 @@ function showConfig(prefill) {
   const p = prefill || {};
   document.getElementById('cfg-url').value   = (p.url   !== undefined) ? p.url   : cur.url;
   document.getElementById('cfg-token').value = (p.token !== undefined) ? p.token : (cur.token || 'ete2026');
+  document.getElementById('cfg-actor').value = (p.actor !== undefined) ? p.actor : getActor();
   document.getElementById('config-err').classList.add('hidden');
 }
 function hideConfig() {
@@ -635,10 +646,16 @@ function hideConfig() {
 document.getElementById('cfg-go').onclick = async function() {
   const url   = document.getElementById('cfg-url').value.trim();
   const token = document.getElementById('cfg-token').value.trim();
+  const actor = document.getElementById('cfg-actor').value.trim();
   const err   = document.getElementById('config-err');
   err.classList.add('hidden');
   if (!url || !token) {
     err.textContent = 'Renseigne le lien et le mot de passe.';
+    err.classList.remove('hidden');
+    return;
+  }
+  if (!actor) {
+    err.textContent = 'Indique ton prénom (pour signer tes mises à jour).';
     err.classList.remove('hidden');
     return;
   }
@@ -651,11 +668,12 @@ document.getElementById('cfg-go').onclick = async function() {
     if (data.error) throw new Error(data.error);
     if (!Array.isArray(data.taches)) throw new Error('Réponse inattendue du serveur');
     setBridge(url, token);
+    setActor(actor);
     hideConfig();
     state = Object.assign(state, data);
     refreshFilters();
     renderAll();
-    toast('Connecté — ' + data.taches.length + ' tâches chargées', 'success');
+    toast('Bienvenue ' + actor + ' — ' + data.taches.length + ' tâches chargées', 'success');
   } catch (e) {
     err.textContent = 'Connexion impossible : ' + e.message;
     err.classList.remove('hidden');
@@ -666,9 +684,20 @@ document.getElementById('cfg-go').onclick = async function() {
 };
 
 document.getElementById('reset-config').onclick = function() {
-  if (!confirm('Tu vas devoir re-saisir le lien et le mot de passe. Continuer ?')) return;
+  if (!confirm('Tu vas devoir re-saisir le lien, le mot de passe et ton prénom. Continuer ?')) return;
   clearBridge();
-  showConfig({ url: '', token: 'ete2026' });
+  clearActor();
+  showConfig({ url: '', token: 'ete2026', actor: '' });
+};
+
+document.getElementById('rename-actor').onclick = function() {
+  const cur = getActor();
+  const n = prompt('Comment souhaites-tu signer tes mises à jour ?', cur);
+  if (n === null) return;
+  const name = String(n).trim();
+  if (!name) { toast('Le prénom ne peut pas être vide', 'error'); return; }
+  setActor(name);
+  toast('Prénom enregistré : ' + name, 'success');
 };
 
 /* ============================================================
@@ -678,6 +707,11 @@ async function bootstrap() {
   const cfg = getBridge();
   if (!cfg.url || !cfg.token) {
     showConfig({ token: 'ete2026' });
+    return;
+  }
+  // Cas migration : URL+token déjà stockés mais pas de prénom → on redemande
+  if (!getActor()) {
+    showConfig();
     return;
   }
   document.getElementById('app-loader').classList.remove('hidden');
@@ -1093,13 +1127,15 @@ async function sendChat(forced) {
   const text = (forced || input.value).trim();
   if (!text) return;
   if (!forced) input.value = '';
-  addMsg('user', text);
+  const me = getActor();
+  addMsg('user', (me ? me + ' : ' : '') + text);
   const thinking = addThinking();
   try {
+    const userContent = me ? `Question posée par ${me} : ${text}` : text;
     const data = await api('ai.chat', {
       messages: [
         { role: 'system', content: systemPrompt() },
-        { role: 'user',   content: text }
+        { role: 'user',   content: userContent }
       ]
     });
     thinking.classList.remove('thinking');

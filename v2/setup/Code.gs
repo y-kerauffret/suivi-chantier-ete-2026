@@ -96,6 +96,13 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+/* Étiquette mise à jour : "YYYY-MM-DD — Prénom" si un acteur est fourni,
+   sinon juste "YYYY-MM-DD". */
+function actorTag(actor) {
+  const a = String(actor || '').trim();
+  return a ? today() + ' — ' + a : today();
+}
+
 // ============================================================
 //  POINTS D'ENTRÉE HTTP
 //  doGet  : lecture (op=state)
@@ -215,8 +222,8 @@ function opTaskUpdate(p) {
     const v = fields[k];
     sh.getRange(rowNum, colIdx + 1).setValue(v == null ? '' : v);
   });
-  // Met à jour la colonne MAJ automatiquement
-  sh.getRange(rowNum, TACHES_COLS.indexOf('MAJ') + 1).setValue(today());
+  // Met à jour la colonne MAJ automatiquement, avec le prénom de l'auteur si fourni
+  sh.getRange(rowNum, TACHES_COLS.indexOf('MAJ') + 1).setValue(actorTag(p.actor));
   return { ok: true, id: p.id };
 }
 
@@ -236,7 +243,7 @@ function opTaskCreate(p) {
     f.statut   || 'À faire',
     f.priorite || 'Moyenne',
     f.consigne || '',
-    today()
+    actorTag(p.actor)
   ]);
   return { ok: true, id: newId };
 }
