@@ -24,12 +24,20 @@
 const SHEET_TACHES    = 'Tâches';
 const SHEET_CONGES    = 'Congés';
 const SHEET_CHANTIERS = 'Chantiers';
+const SHEET_USERS     = 'Utilisateurs';
 
 const TACHES_COLS    = ['ID','Site','Action','Pilote','Equipe','Debut','Fin','Duree','Statut','Priorite','Consigne','MAJ'];
 const CONGES_COLS    = ['Personne','Du','Au','Remplacant','Remarque'];
 const CHANTIERS_COLS = ['Nom','Couleur','Referent','Notes'];
+const USERS_COLS     = ['Login','Hash','Sel','Role','Actif'];
 
 const STATUTS = ['À faire','En cours','Fait','Jalon'];
+const ROLES   = ['admin','editeur'];
+
+// Auth — paramètres
+const SESSION_TTL_SECONDS = 24 * 60 * 60;  // 24h de session
+const MAX_LOGIN_ATTEMPTS  = 5;             // tentatives avant verrouillage
+const LOCKOUT_TTL_SECONDS = 15 * 60;       // 15 min de verrouillage
 
 // ============================================================
 //  PROPRIÉTÉS (token + clé OpenRouter — stockés côté serveur)
@@ -96,6 +104,190 @@ function today() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// ============================================================
+//  HELPERS UTILISATEURS (préparation LOT 1.3 — auth login/mdp)
+// ============================================================
+
+/* Normalise un login pour comparaison : trim + minuscules + accents
+   supprimés. Permet à un utilisateur de taper « sebastien », « Sébastien »
+   ou « SEBASTIEN », tous reconnus comme la même personne. */
+function normalizeLogin(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/* Hash un mot de passe avec son sel — STRICTEMENT le même algorithme
+   que celui utilisé pour générer les hashes côté Node (gen-hashes.js) :
+       SHA-256( password + ':' + salt )  → hex
+   Tout écart casserait l'auth, donc ne pas modifier sans répercuter. */
+function hashPassword(password, salt) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(password) + ':' + String(salt),
+    Utilities.Charset.UTF_8
+  );
+  return bytes.map(function(b){
+    return ('0' + (b & 0xff).toString(16)).slice(-2);
+  }).join('');
+}
+
+/* Cherche un utilisateur actif par son login (comparaison normalisée).
+   Renvoie { row, login, hash, salt, role } ou null. */
+function findUser(login) {
+  const sh = getSheet(SHEET_USERS);
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return null;
+  const data = sh.getRange(2, 1, lastRow - 1, USERS_COLS.length).getValues();
+  const wanted = normalizeLogin(login);
+  for (let i = 0; i < data.length; i++) {
+    const row    = data[i];
+    const stored = normalizeLogin(row[0]);
+    const actif  = row[4] === true || row[4] === 'TRUE' || row[4] === 'true' || row[4] === 1;
+    if (stored === wanted && actif) {
+      return {
+        row:   i + 2,
+        login: row[0],
+        hash:  row[1],
+        salt:  row[2],
+        role:  row[3] || 'editeur'
+      };
+    }
+  }
+  return null;
+}
+
+// ============================================================
+//  AUTH — session token signé + rate-limiting (LOT 1.3)
+// ============================================================
+
+/* Renvoie le secret HMAC utilisé pour signer les sessions, en le
+   générant la 1re fois si absent. Stocké dans les propriétés du script
+   (jamais exposé à la page). */
+function ensureSessionSecret() {
+  const p = props();
+  let secret = p.getProperty('SESSION_SECRET');
+  if (!secret) {
+    secret = Utilities.getUuid() + Utilities.getUuid();
+    p.setProperty('SESSION_SECRET', secret);
+  }
+  return secret;
+}
+
+function b64Encode(str) {
+  return Utilities.base64Encode(str, Utilities.Charset.UTF_8);
+}
+function b64Decode(s) {
+  return Utilities.newBlob(Utilities.base64Decode(s)).getDataAsString();
+}
+
+function hmacSha256Hex(message, secret) {
+  const bytes = Utilities.computeHmacSha256Signature(message, secret);
+  return bytes.map(function(b){
+    return ('0' + (b & 0xff).toString(16)).slice(-2);
+  }).join('');
+}
+
+function nowSeconds() {
+  return Math.floor(new Date().getTime() / 1000);
+}
+
+/* Construit un session token : base64(payload).hex(HMAC-SHA256(payload, SECRET))
+   Payload = { login, role, exp }. */
+function signSession(login, role) {
+  const payload = JSON.stringify({ login: login, role: role, exp: nowSeconds() + SESSION_TTL_SECONDS });
+  const payloadB64 = b64Encode(payload);
+  const sig = hmacSha256Hex(payloadB64, ensureSessionSecret());
+  return payloadB64 + '.' + sig;
+}
+
+/* Vérifie un session token : renvoie le payload { login, role, exp }
+   si la signature est valide ET non expirée, sinon null. */
+function verifySession(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const expectedSig = hmacSha256Hex(parts[0], ensureSessionSecret());
+  if (parts[1] !== expectedSig) return null;
+  try {
+    const payload = JSON.parse(b64Decode(parts[0]));
+    if (!payload.exp || payload.exp < nowSeconds()) return null;
+    return payload;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Rate-limiting des tentatives de login (via CacheService, TTL auto)
+function loginAttemptsKey(login) {
+  return 'loginfail:' + normalizeLogin(login);
+}
+function getLoginAttempts(login) {
+  const v = CacheService.getScriptCache().get(loginAttemptsKey(login));
+  return v ? parseInt(v, 10) : 0;
+}
+function incrementLoginAttempts(login) {
+  const cache = CacheService.getScriptCache();
+  const n = getLoginAttempts(login) + 1;
+  cache.put(loginAttemptsKey(login), String(n), LOCKOUT_TTL_SECONDS);
+  return n;
+}
+function clearLoginAttempts(login) {
+  CacheService.getScriptCache().remove(loginAttemptsKey(login));
+}
+
+/* OPÉRATION login : vérifie login+mdp et renvoie un session token.
+   - Rate-limit : 5 tentatives ratées => verrouillage 15 min (par login).
+   - Le message d'erreur est volontairement générique ("Identifiants
+     invalides") pour ne pas révéler si le login existe ou pas. */
+function opLogin(p) {
+  const login    = String(p.login    || '').trim();
+  const password = String(p.password || '');
+  if (!login || !password) {
+    return { error: 'Login et mot de passe requis' };
+  }
+  if (getLoginAttempts(login) >= MAX_LOGIN_ATTEMPTS) {
+    return { error: 'Trop de tentatives. Reessayez dans 15 minutes.' };
+  }
+  const user = findUser(login);
+  if (!user) {
+    incrementLoginAttempts(login);
+    return { error: 'Identifiants invalides' };
+  }
+  const computed = hashPassword(password, user.salt);
+  if (computed !== String(user.hash).toLowerCase()) {
+    incrementLoginAttempts(login);
+    return { error: 'Identifiants invalides' };
+  }
+  clearLoginAttempts(login);
+  return {
+    ok: true,
+    token: signSession(user.login, user.role),
+    login: user.login,
+    role:  user.role,
+    expires_in: SESSION_TTL_SECONDS
+  };
+}
+
+/* Petit auto-test à exécuter une fois depuis l'éditeur Apps Script
+   pour vérifier que la chaîne hash + signature + vérif marche. */
+function testLogin() {
+  Logger.log('--- testLogin ---');
+  // 1. Tentative avec un mauvais mdp pour Yannick
+  const ko = opLogin({ login: 'Yannick', password: 'wrong' });
+  Logger.log('Mauvais mdp -> ' + JSON.stringify(ko));
+  // 2. Vérifie que la signature valide passe la vérif
+  const fake = signSession('TESTUSER', 'editeur');
+  const payload = verifySession(fake);
+  Logger.log('Signature self-test : ' + (payload && payload.login === 'TESTUSER' ? 'OK' : 'KO'));
+  // 3. Vérifie qu'un token bidon est rejeté
+  Logger.log('Token bidon       : ' + (verifySession('blabla') === null ? 'OK (rejete)' : 'KO'));
+  // 4. NOTE: on ne teste pas le bon mdp ici pour ne pas l'ecrire en clair.
+  //    Le vrai test grandeur nature se fera depuis la page web (LOT 1.4).
+}
+
 /* Étiquette mise à jour : "YYYY-MM-DD — Prénom" si un acteur est fourni,
    sinon juste "YYYY-MM-DD". */
 function actorTag(actor) {
@@ -126,13 +318,27 @@ function handle(e, method) {
     }
     const params = Object.assign({}, e.parameter || {}, body);
 
-    // Authentification : token partagé
-    if (params.token !== getToken()) {
-      return json({ error: 'Token invalide ou manquant' });
-    }
-
     const op = params.op;
     if (!op) return json({ error: 'Paramètre op manquant' });
+
+    // Op « login » : pas besoin de token de session (elle SERT à l'obtenir)
+    if (op === 'login') {
+      return json(opLogin(params));
+    }
+
+    // Pour les autres ops : deux modes d'auth acceptes pendant la
+    // transition (LOT 1.3 -> 1.6) :
+    //   1. session token signe  -> mode cible
+    //   2. token partage (legacy) -> compatibilite collegues le temps
+    //      qu'on bascule le front (LOT 1.4)
+    if (params.session) {
+      const sess = verifySession(params.session);
+      if (!sess) return json({ error: 'Session expiree ou invalide' });
+      params.actor = sess.login;
+      params.role  = sess.role;
+    } else if (params.token !== getToken()) {
+      return json({ error: 'Token invalide ou manquant' });
+    }
 
     switch (op) {
       case 'state':        return json(opState());
@@ -351,7 +557,7 @@ function setup() {
   const ko = [];
 
   // 1. Onglets présents ?
-  [SHEET_TACHES, SHEET_CONGES, SHEET_CHANTIERS].forEach(name => {
+  [SHEET_TACHES, SHEET_CONGES, SHEET_CHANTIERS, SHEET_USERS].forEach(name => {
     const sh = ss.getSheetByName(name);
     if (sh) ok.push('Onglet trouvé : ' + name);
     else    ko.push('Onglet MANQUANT : ' + name + ' (vérifie l\'orthographe et les accents)');
@@ -369,6 +575,15 @@ function setup() {
   checkHeaders(SHEET_TACHES, TACHES_COLS);
   checkHeaders(SHEET_CONGES, CONGES_COLS);
   checkHeaders(SHEET_CHANTIERS, CHANTIERS_COLS);
+  checkHeaders(SHEET_USERS, USERS_COLS);
+
+  // 4. Comptes utilisateurs présents ?
+  const shUsers = ss.getSheetByName(SHEET_USERS);
+  if (shUsers) {
+    const nb = Math.max(0, shUsers.getLastRow() - 1);
+    if (nb > 0) ok.push(nb + ' compte(s) utilisateur(s) chargé(s)');
+    else        ko.push('Onglet ' + SHEET_USERS + ' vide (exécute initUsers() depuis le fichier setup-users-once.gs)');
+  }
 
   // 3. Propriétés
   if (getToken())         ok.push('Propriété SHARED_TOKEN définie');
