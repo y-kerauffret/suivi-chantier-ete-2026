@@ -29,7 +29,7 @@ const SHEET_USERS     = 'Utilisateurs';
 const TACHES_COLS    = ['ID','Site','Action','Pilote','Equipe','Debut','Fin','Duree','Statut','Priorite','Consigne','MAJ'];
 const CONGES_COLS    = ['Personne','Du','Au','Remplacant','Remarque'];
 const CHANTIERS_COLS = ['Nom','Couleur','Referent','Notes'];
-const USERS_COLS     = ['Login','Hash','Sel','Role','Actif'];
+const USERS_COLS     = ['Login','MotDePasse','Role','Actif'];
 
 const STATUTS = ['À faire','En cours','Fait','Jalon'];
 const ROLES   = ['admin','editeur'];
@@ -105,7 +105,7 @@ function today() {
 }
 
 // ============================================================
-//  HELPERS UTILISATEURS (préparation LOT 1.3 — auth login/mdp)
+//  HELPERS UTILISATEURS — auth login/mot de passe
 // ============================================================
 
 /* Normalise un login pour comparaison : trim + minuscules + accents
@@ -119,23 +119,10 @@ function normalizeLogin(s) {
     .trim();
 }
 
-/* Hash un mot de passe avec son sel — STRICTEMENT le même algorithme
-   que celui utilisé pour générer les hashes côté Node (gen-hashes.js) :
-       SHA-256( password + ':' + salt )  → hex
-   Tout écart casserait l'auth, donc ne pas modifier sans répercuter. */
-function hashPassword(password, salt) {
-  const bytes = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    String(password) + ':' + String(salt),
-    Utilities.Charset.UTF_8
-  );
-  return bytes.map(function(b){
-    return ('0' + (b & 0xff).toString(16)).slice(-2);
-  }).join('');
-}
-
 /* Cherche un utilisateur actif par son login (comparaison normalisée).
-   Renvoie { row, login, hash, salt, role } ou null. */
+   Renvoie { row, login, password, role } ou null.
+   Le mot de passe est stocké en clair dans la Sheet (privée) — choix
+   assumé après évaluation du risque (cf. PRD § 11). */
 function findUser(login) {
   const sh = getSheet(SHEET_USERS);
   const lastRow = sh.getLastRow();
@@ -145,14 +132,13 @@ function findUser(login) {
   for (let i = 0; i < data.length; i++) {
     const row    = data[i];
     const stored = normalizeLogin(row[0]);
-    const actif  = row[4] === true || row[4] === 'TRUE' || row[4] === 'true' || row[4] === 1;
+    const actif  = row[3] === true || row[3] === 'TRUE' || row[3] === 'true' || row[3] === 1;
     if (stored === wanted && actif) {
       return {
-        row:   i + 2,
-        login: row[0],
-        hash:  row[1],
-        salt:  row[2],
-        role:  row[3] || 'editeur'
+        row:      i + 2,
+        login:    row[0],
+        password: String(row[1] || ''),
+        role:     row[2] || 'editeur'
       };
     }
   }
@@ -256,8 +242,7 @@ function opLogin(p) {
     incrementLoginAttempts(login);
     return { error: 'Identifiants invalides' };
   }
-  const computed = hashPassword(password, user.salt);
-  if (computed !== String(user.hash).toLowerCase()) {
+  if (password !== user.password) {
     incrementLoginAttempts(login);
     return { error: 'Identifiants invalides' };
   }
@@ -582,7 +567,7 @@ function setup() {
   if (shUsers) {
     const nb = Math.max(0, shUsers.getLastRow() - 1);
     if (nb > 0) ok.push(nb + ' compte(s) utilisateur(s) chargé(s)');
-    else        ko.push('Onglet ' + SHEET_USERS + ' vide (exécute initUsers() depuis le fichier setup-users-once.gs)');
+    else        ko.push('Onglet ' + SHEET_USERS + ' vide — remplir manuellement les lignes (Login / MotDePasse / Role / Actif)');
   }
 
   // 3. Propriétés
