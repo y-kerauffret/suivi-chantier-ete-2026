@@ -1,8 +1,8 @@
 # PRD — Assistant de suivi de l'été 2026
 
 > **Document de cadrage produit (Product Requirements Document)**
-> Version 0.2 — enrichie avec les données réelles du « Gantt croisé été 2026 ».
-> Date : 2026-06-20
+> Version 0.3 — ajout du volet **authentification & sécurité** (demande du DSI).
+> Date : 2026-06-29 (versions antérieures : 0.2 le 2026-06-20)
 
 ---
 
@@ -68,7 +68,11 @@ moment des passations** (ex. « relancer l'entreprise pour les 3 classes/bureaux
 - **Le directeur (toi)** — administrateur : répartit les tâches, consulte les récaps, supervise.
 - **6-7 collègues** (chefs de service, agents : Enfance, HR, manutention, Éducation…) — profils
   **non techniques**, souvent sur **smartphone**, sur le terrain. Ils doivent pouvoir : voir leurs
-  tâches, cocher « fait », laisser une consigne, demander un récap. **Sans compte à créer** (lien simple).
+  tâches, cocher « fait », laisser une consigne, demander un récap.
+- **19 comptes individuels** ont été provisionnés (cf. § 11). L'inscription est faite **par le
+  directeur en amont** : les agents reçoivent simplement leur identifiant + mot de passe et n'ont
+  rien à créer eux-mêmes. La promesse « accès en moins de 2 minutes » reste tenue : 2 champs à
+  saisir une fois, session valable 24 h, l'identifiant est mémorisé ensuite.
 
 ---
 
@@ -107,8 +111,9 @@ moment des passations** (ex. « relancer l'entreprise pour les 3 classes/bureaux
 - Vue planning / Gantt, filtre « mes tâches » / « cette semaine », récap mail quotidien, journal.
 
 ### 7.4 Hors périmètre (pour rester léger)
-- Comptes/mots de passe individuels, gestion RH complète des congés (soldes, validation),
-  appli mobile native, workflows complexes.
+- Gestion RH complète des congés (soldes, validation), appli mobile native, workflows complexes.
+- *Initialement* les comptes individuels étaient hors périmètre — le DSI les a depuis demandés
+  (cf. § 11, ajout du 29 juin 2026).
 
 ---
 
@@ -179,11 +184,73 @@ Première date, Dernière date.
 
 ## 11. Sécurité & confidentialité
 
-- **Clé OpenRouter** : V1 = stockée uniquement dans ton navigateur (test perso) ; V2 = cachée dans
-  le Apps Script (jamais dans la page ni dans le dépôt).
-- **Accès par lien** (V2) : « qui a le lien peut voir/écrire » → à cadrer (Q ouvertes).
-- **Congés = données personnelles** (RGPD) : limiter au strict nécessaire (nom, dates, remplaçant) ;
-  pas de motif d'absence. Dépôt GitHub en privé.
+> **Note d'évolution — 29 juin 2026.** À la demande du **DSI de la collectivité**, l'accès au
+> suivi est désormais protégé par un **système d'authentification individuel** (login + mot de
+> passe par agent), avec **sessions signées** et **limitation des tentatives**. Le « mot de passe
+> partagé » initial (« qui a le lien peut entrer ») n'est plus la voie nominale. Détail ci-dessous.
+> Livré en deux lots : V2.3 (backend Apps Script) et V2.4 (bascule du front), tous deux le 29/06/2026.
+
+### 11.1 Authentification individuelle (V2.3 / V2.4)
+
+- **19 comptes** ont été créés et provisionnés dans la Google Sheet (onglet `Utilisateurs`,
+  colonnes : `Login`, `Hash`, `Sel`, `Role`, `Actif`).
+- **Identifiant** = prénom de l'agent (comparaison **tolérante** : casse, accents et espaces
+  ignorés, pour éviter les blocages liés à une majuscule manquante).
+- **Mots de passe jamais stockés en clair** : la Sheet ne contient que `SHA-256(mot_de_passe + « : » + sel)`
+  en hexadécimal, avec un **sel unique** généré aléatoirement par compte. Conséquence : même si
+  la Sheet était lue par un tiers, il ne pourrait pas remonter aux mots de passe.
+- **Distribution** : les couples (login, mot de passe) sont remis **hors-canal** par le directeur
+  à chaque agent. Les fichiers techniques ayant servi à générer ces hashes ne sont
+  **volontairement pas conservés dans le dépôt** (pas de traces des secrets en clair, pas même
+  dans l'historique git).
+- **Rôles** : deux rôles définis (`admin`, `editeur`). Le rôle est exposé côté client mais n'est
+  pas encore exploité pour différencier les permissions — prévu pour une évolution si le besoin
+  se confirme (par défaut tout le monde peut tout éditer, comme avant).
+
+### 11.2 Sessions
+
+- Connexion réussie → le serveur renvoie un **token de session signé** (HMAC-SHA256 avec un secret
+  généré et conservé dans les Propriétés du Apps Script — jamais exposé). Le token contient
+  `{ login, role, exp }` en base64, suivi de la signature ; sa modification est détectée et rejetée.
+- **Durée de validité** : **24 heures**. Au-delà, l'agent doit se reconnecter — son identifiant est
+  pré-rempli, il n'a qu'à retaper son mot de passe.
+- **Stockage côté navigateur** : `localStorage`, clé `session_v1`. Aucun cookie HTTP, aucune
+  information personnelle au-delà de l'identifiant.
+- **Sans état côté serveur** : la signature suffit à vérifier le token, donc rien à maintenir
+  côté Apps Script. Conséquence pratique : la « déconnexion » est purement locale (purge du
+  `localStorage`) — aucune révocation centralisée tant que le token n'a pas expiré.
+
+### 11.3 Protection contre les attaques par force brute
+
+- **5 tentatives ratées** sur un même identifiant → **verrouillage 15 minutes** pour ce login.
+- Le compteur est tenu par le cache court d'Apps Script (`CacheService`), auto-purgé à expiration.
+- Le message d'erreur est volontairement **générique** (« Identifiants invalides ») et ne révèle
+  pas si le login existe ou non — un attaquant ne peut pas énumérer les comptes.
+
+### 11.4 Traçabilité des modifications
+
+- Chaque création/modification de tâche ou de congé est tracée dans la colonne `MAJ` au format
+  `AAAA-MM-JJ — Prénom`. Depuis V2.4, **le prénom est extrait de la session authentifiée**
+  (et non plus saisi librement par l'utilisateur), ce qui garantit l'**imputabilité réelle**.
+
+### 11.5 Autres mesures (rappel)
+
+- **Clé OpenRouter** : cachée dans les Propriétés du Apps Script — jamais dans la page, jamais
+  dans le dépôt.
+- **Dépôt GitHub privé** ; l'hébergement GitHub Pages ne sert que la page statique.
+- **Congés = données personnelles** (RGPD) : on limite au strict nécessaire (nom, dates,
+  remplaçant·e, remarque libre). Pas de motif d'absence, pas de coordonnées personnelles.
+
+### 11.6 Reste à faire (suite de la sécurisation)
+
+- **Retirer le mode legacy** (`token=ete2026`) côté serveur — il est encore accepté pour
+  permettre une bascule sans casse, mais le front V2.4 ne l'utilise plus. À supprimer dès que
+  les 19 agents sont effectivement passés sur l'auth (cible : courant juillet 2026).
+- **Exploiter le rôle `admin`** côté front si on veut restreindre certaines actions (ex.
+  suppression de tâche, gestion des congés des autres).
+- **Procédure de réinitialisation de mot de passe** : à formaliser (aujourd'hui = le directeur
+  régénère un hash via le script Node de génération, qu'il faut alors recréer ponctuellement
+  hors-repo).
 
 ---
 
@@ -200,15 +267,22 @@ Première date, Dernière date.
 - **Phase 1 — Prototype local** : page web pré-remplie avec les 34 tâches, vues + filtres + assistant
   (mémoire navigateur). ✅ **livré pour visualisation**.
 - **Phase 2 — Version partagée** : Google Sheet + pont Apps Script + hébergement GitHub Pages + clé
-  OpenRouter cachée + écriture par l'assistant.
+  OpenRouter cachée + écriture par l'assistant. ✅ **livré (V2 → V2.2)**.
+- **Phase 2.5 — Sécurisation (demande DSI)** : authentification individuelle login + mot de passe,
+  sessions signées 24 h, rate-limiting, traçabilité par session. ✅ **livré le 29/06/2026 (V2.3 + V2.4)**.
+  Reliquat : retirer le mode legacy backend une fois les agents tous basculés (cf. § 11.6).
 - **Phase 3 — Confort** : vue planning, filtres avancés, récap mail quotidien.
 
 ---
 
 ## 14. Questions ouvertes / décisions à prendre
 
-1. **Accès** (V2) : un seul lien pour tous, ou un mot de passe simple partagé en plus ?
+1. ~~**Accès** (V2) : un seul lien pour tous, ou un mot de passe simple partagé en plus ?~~
+   ✅ **résolu le 29/06/2026** — authentification individuelle (login + mot de passe par agent),
+   suite à la demande du DSI. Cf. § 11.
 2. **Droits** (V2) : tout le monde modifie, ou toi + chefs en écriture, autres en lecture ?
+   ↳ partiellement résolu : les rôles `admin` / `editeur` existent dans la Sheet mais ne sont
+   pas encore exploités côté front (tout le monde peut tout éditer). À arbitrer si besoin réel.
 3. **Modèle OpenRouter** : quel Claude (équilibre coût/qualité) ?
 4. **Congés** : tableau simple (retenu) ou aussi mini-vue calendrier ?
 5. **Chantiers** : ✅ résolu — liste connue (7 sites ci-dessus).
