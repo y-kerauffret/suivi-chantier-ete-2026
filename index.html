@@ -427,14 +427,13 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
   <section id="tab-assistant" class="tab hidden">
     <div class="assistant-wrap">
       <details class="assistant-settings" id="ai-settings">
-        <summary>Configuration de la connexion</summary>
+        <summary>Mon compte</summary>
         <div class="info">
-          La clé OpenRouter est <b>cachée côté serveur</b> — tu n'as rien à saisir ici.
-          Si tu dois changer le lien partagé ou le mot de passe, clique ci-dessous.
+          Connecté en tant que <b id="session-info">…</b>.
+          La clé OpenRouter est cachée côté serveur, tu n'as rien à configurer ici.
         </div>
         <div class="actions">
-          <button class="btn ghost sm" id="rename-actor">Changer mon prénom</button>
-          <button class="btn ghost sm" id="reset-config">Changer la configuration</button>
+          <button class="btn ghost sm" id="logout">Se déconnecter</button>
         </div>
       </details>
       <div class="suggest">
@@ -491,25 +490,26 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
   </div>
 </form></dialog>
 
-<!-- Écran de connexion (premier lancement) -->
+<!-- Écran de connexion -->
 <div id="config-overlay" class="hidden">
   <div class="config-card">
     <div class="logo">É26</div>
-    <h2>Bienvenue sur le suivi de l'été 2026</h2>
-    <p class="lead">Pour démarrer, colle le <strong>lien de connexion</strong> et le <strong>mot de passe</strong> qui t'ont été partagés.</p>
+    <h2>Connexion</h2>
+    <p class="lead">Saisis l'<strong>identifiant</strong> et le <strong>mot de passe</strong> qui t'ont été remis.</p>
     <div id="config-err" class="err hidden"></div>
-    <div class="field">
-      <label>Mot de passe</label>
-      <input type="text" id="cfg-token" placeholder="ete2026" autocomplete="off">
-    </div>
-    <div class="field">
-      <label>Ton prénom</label>
-      <input type="text" id="cfg-actor" placeholder="Sophie, Marc, Yannick…" autocomplete="off">
-      <div class="help">Pour signer tes mises à jour (ex. « 21/06 — Sophie »).</div>
-    </div>
-    <div class="btn-row">
-      <button class="btn block" id="cfg-go">Se connecter</button>
-    </div>
+    <form id="login-form" autocomplete="on">
+      <div class="field">
+        <label for="cfg-login">Identifiant</label>
+        <input type="text" id="cfg-login" name="username" autocomplete="username" placeholder="ton prénom" autocapitalize="off" autocorrect="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="cfg-password">Mot de passe</label>
+        <input type="password" id="cfg-password" name="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <div class="btn-row">
+        <button type="submit" class="btn block" id="cfg-go">Se connecter</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -533,44 +533,63 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
    côté serveur (PropertiesService).
    ============================================================ */
 /* URL du pont Apps Script — en dur (n'est pas un secret : la sécurité
-   repose sur le mot de passe + le déploiement « Tout le monde »).
+   repose sur l'authentification login/mdp + déploiement « Tout le monde »).
    Si tu redéploies avec une nouvelle URL, change cette ligne et push. */
-const BRIDGE_URL       = 'https://script.google.com/macros/s/AKfycbzi4fHXTz_unLF_adkB7TfqUdl6T7Qpd3i5ClfdsxMqBzdCDx2NoYHolFl5EkN5IDox/exec';
-const BRIDGE_TOKEN_KEY = 'bridge_token';
-const ACTOR_KEY        = 'actor_name';
+const BRIDGE_URL  = 'https://script.google.com/macros/s/AKfycbzi4fHXTz_unLF_adkB7TfqUdl6T7Qpd3i5ClfdsxMqBzdCDx2NoYHolFl5EkN5IDox/exec';
+const SESSION_KEY = 'session_v1';
 
-function getBridge() {
-  return {
-    url:   BRIDGE_URL,
-    token: (localStorage.getItem(BRIDGE_TOKEN_KEY) || '').trim()
-  };
+/* Lit la session active depuis le localStorage.
+   Renvoie null si absente, malformée ou expirée.
+   Forme stockée : { token, login, role, exp } — exp = timestamp UNIX (s). */
+function getSession() {
+  const raw = localStorage.getItem(SESSION_KEY);
+  if (!raw) return null;
+  try {
+    const s = JSON.parse(raw);
+    if (!s || !s.token || !s.login) return null;
+    if (s.exp && s.exp * 1000 < Date.now()) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return s;
+  } catch (e) {
+    localStorage.removeItem(SESSION_KEY);
+    return null;
+  }
 }
-function setBridge(token) {
-  localStorage.setItem(BRIDGE_TOKEN_KEY, String(token||'').trim());
-}
-function clearBridge() {
-  localStorage.removeItem(BRIDGE_TOKEN_KEY);
-}
-function getActor()       { return (localStorage.getItem(ACTOR_KEY) || '').trim(); }
-function setActor(name)   { localStorage.setItem(ACTOR_KEY, String(name||'').trim()); }
-function clearActor()     { localStorage.removeItem(ACTOR_KEY); }
+function setSession(s)   { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession()  { localStorage.removeItem(SESSION_KEY); }
 
 /* Appel POST vers le pont.
    text/plain pour éviter le préflight CORS de Apps Script.
-   Le pont parse e.postData.contents. */
+   Le backend extrait l'auteur depuis la session signée — pas besoin
+   d'envoyer le prénom séparément. */
 async function api(op, payload) {
-  const { url, token } = getBridge();
-  if (!url || !token) throw new Error('Connexion non configurée');
+  const sess = getSession();
+  if (!sess) {
+    showConfig();
+    throw new Error('Session expirée — reconnecte-toi.');
+  }
   setSync('busy');
   try {
-    const body = Object.assign({ op: op, token: token, actor: getActor() }, payload || {});
-    const r = await fetch(url, {
+    const body = Object.assign({ op: op, session: sess.token }, payload || {});
+    const r = await fetch(BRIDGE_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(body)
     });
     const data = await r.json();
-    if (data.error) throw new Error(data.error);
+    if (data.error) {
+      // Si la session a expiré côté serveur, on purge et on redemande
+      if (/session.*(invalide|expir)/i.test(data.error)) {
+        clearSession();
+        showConfig();
+        const err = document.getElementById('config-err');
+        err.textContent = 'Session expirée, reconnecte-toi.';
+        err.classList.remove('hidden');
+      }
+      throw new Error(data.error);
+    }
     setSync('ok');
     return data;
   } catch (e) {
@@ -635,28 +654,49 @@ function setSync(s) {
    ============================================================ */
 function showConfig(prefill) {
   document.getElementById('config-overlay').classList.remove('hidden');
-  const cur = getBridge();
   const p = prefill || {};
-  document.getElementById('cfg-token').value = (p.token !== undefined) ? p.token : (cur.token || 'ete2026');
-  document.getElementById('cfg-actor').value = (p.actor !== undefined) ? p.actor : getActor();
+  // Pré-remplit l'identifiant si déjà connu (ex. session expirée),
+  // pour que la personne n'ait qu'à retaper son mot de passe.
+  const sess  = getSession() || {};
+  const login = p.login !== undefined ? p.login : (sess.login || '');
+  document.getElementById('cfg-login').value    = login;
+  document.getElementById('cfg-password').value = '';
   document.getElementById('config-err').classList.add('hidden');
+  setTimeout(function(){
+    document.getElementById(login ? 'cfg-password' : 'cfg-login').focus();
+  }, 50);
 }
 function hideConfig() {
   document.getElementById('config-overlay').classList.add('hidden');
 }
 
-document.getElementById('cfg-go').onclick = async function() {
-  const token = document.getElementById('cfg-token').value.trim();
-  const actor = document.getElementById('cfg-actor').value.trim();
-  const err   = document.getElementById('config-err');
+/* Tente le login auprès du backend et stocke la session reçue.
+   Le backend renvoie { ok, token, login, role, expires_in }. */
+async function doLogin(login, password) {
+  const r = await fetch(BRIDGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ op: 'login', login: login, password: password })
+  });
+  const data = await r.json();
+  if (data.error) throw new Error(data.error);
+  if (!data.token) throw new Error('Réponse inattendue du serveur');
+  setSession({
+    token: data.token,
+    login: data.login || login,
+    role:  data.role  || 'editeur',
+    exp:   Math.floor(Date.now() / 1000) + Number(data.expires_in || 0)
+  });
+}
+
+document.getElementById('login-form').addEventListener('submit', async function(ev) {
+  ev.preventDefault();
+  const login    = document.getElementById('cfg-login').value.trim();
+  const password = document.getElementById('cfg-password').value;
+  const err      = document.getElementById('config-err');
   err.classList.add('hidden');
-  if (!token) {
-    err.textContent = 'Renseigne le mot de passe.';
-    err.classList.remove('hidden');
-    return;
-  }
-  if (!actor) {
-    err.textContent = 'Indique ton prénom (pour signer tes mises à jour).';
+  if (!login || !password) {
+    err.textContent = 'Identifiant et mot de passe sont requis.';
     err.classList.remove('hidden');
     return;
   }
@@ -664,77 +704,70 @@ document.getElementById('cfg-go').onclick = async function() {
   btn.textContent = 'Connexion…';
   btn.disabled = true;
   try {
-    const r = await fetch(BRIDGE_URL + '?op=state&token=' + encodeURIComponent(token));
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    if (!Array.isArray(data.taches)) throw new Error('Réponse inattendue du serveur');
-    setBridge(token);
-    setActor(actor);
+    await doLogin(login, password);
     hideConfig();
-    state = Object.assign(state, data);
-    refreshFilters();
-    renderAll();
-    toast('Bienvenue ' + actor + ' — ' + data.taches.length + ' tâches chargées', 'success');
+    document.getElementById('app-loader').classList.remove('hidden');
+    await loadState();
+    document.getElementById('app-loader').classList.add('hidden');
+    const sess = getSession();
+    toast('Bienvenue ' + (sess ? sess.login : login), 'success');
   } catch (e) {
-    err.textContent = 'Connexion impossible : ' + e.message;
+    err.textContent = e.message;
     err.classList.remove('hidden');
   } finally {
     btn.textContent = 'Se connecter';
     btn.disabled = false;
   }
-};
+});
 
-document.getElementById('reset-config').onclick = function() {
-  if (!confirm('Tu vas devoir re-saisir le mot de passe et ton prénom. Continuer ?')) return;
-  clearBridge();
-  clearActor();
-  showConfig({ token: 'ete2026', actor: '' });
-};
-
-document.getElementById('rename-actor').onclick = function() {
-  const cur = getActor();
-  const n = prompt('Comment souhaites-tu signer tes mises à jour ?', cur);
-  if (n === null) return;
-  const name = String(n).trim();
-  if (!name) { toast('Le prénom ne peut pas être vide', 'error'); return; }
-  setActor(name);
-  toast('Prénom enregistré : ' + name, 'success');
+/* Déconnexion : purge la session locale et revient à l'écran de login.
+   Pas d'appel serveur — les sessions sont stateless côté backend. */
+document.getElementById('logout').onclick = function() {
+  if (!confirm('Te déconnecter ?')) return;
+  clearSession();
+  showConfig();
 };
 
 /* ============================================================
-   BOOTSTRAP
+   CHARGEMENT D'ÉTAT + BOOTSTRAP
    ============================================================ */
+/* Charge l'état complet (tâches, congés, chantiers) via api()
+   et redessine l'écran. Appelé au démarrage, après login, au refresh. */
+async function loadState() {
+  const data = await api('state');
+  state = Object.assign(state, data);
+  refreshFilters();
+  renderAll();
+  renderSessionInfo();
+}
+
+/* Met à jour le libellé « Connecté en tant que … » du panel compte. */
+function renderSessionInfo() {
+  const el = document.getElementById('session-info');
+  if (!el) return;
+  const sess = getSession();
+  el.textContent = sess
+    ? sess.login + (sess.role === 'admin' ? ' (admin)' : '')
+    : '—';
+}
+
 async function bootstrap() {
-  const cfg = getBridge();
-  if (!cfg.url || !cfg.token) {
-    showConfig({ token: 'ete2026' });
-    return;
-  }
-  // Cas migration : URL+token déjà stockés mais pas de prénom → on redemande
-  if (!getActor()) {
+  if (!getSession()) {
     showConfig();
     return;
   }
   document.getElementById('app-loader').classList.remove('hidden');
   try {
-    setSync('busy');
-    const r = await fetch(cfg.url + '?op=state&token=' + encodeURIComponent(cfg.token));
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    state = Object.assign(state, data);
-    refreshFilters();
-    renderAll();
-    setSync('ok');
+    await loadState();
   } catch (e) {
-    setSync('error');
+    // Si la session a expiré, api() a déjà rouvert l'écran de login.
+    // Sinon c'est une erreur réseau : on prévient l'utilisateur.
+    if (getSession()) {
+      toast('Connexion impossible : ' + e.message, 'error');
+    }
+  } finally {
     document.getElementById('app-loader').classList.add('hidden');
-    showConfig();
-    const err = document.getElementById('config-err');
-    err.textContent = 'Connexion impossible : ' + e.message + ' (vérifie le lien et le mot de passe).';
-    err.classList.remove('hidden');
-    return;
   }
-  document.getElementById('app-loader').classList.add('hidden');
 }
 
 /* ============================================================
@@ -1128,7 +1161,8 @@ async function sendChat(forced) {
   const text = (forced || input.value).trim();
   if (!text) return;
   if (!forced) input.value = '';
-  const me = getActor();
+  const sess = getSession();
+  const me = sess ? sess.login : '';
   addMsg('user', (me ? me + ' : ' : '') + text);
   const thinking = addThinking();
   try {
@@ -1154,16 +1188,9 @@ async function sendChat(forced) {
 document.getElementById('refresh').onclick = async function() {
   document.getElementById('app-loader').classList.remove('hidden');
   try {
-    const cfg = getBridge();
-    const r = await fetch(cfg.url + '?op=state&token=' + encodeURIComponent(cfg.token));
-    const data = await r.json();
-    if (data.error) throw new Error(data.error);
-    state = Object.assign(state, data);
-    refreshFilters(); renderAll();
-    setSync('ok');
+    await loadState();
     toast('Mémoire rafraîchie', 'success');
   } catch (e) {
-    setSync('error');
     toast('Rafraîchissement échoué : ' + e.message, 'error');
   } finally {
     document.getElementById('app-loader').classList.add('hidden');
