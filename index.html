@@ -185,6 +185,15 @@ section.tab.hidden{display:none}
   box-shadow:var(--shadow-sm);
 }
 .task:hover{box-shadow:var(--shadow-md)}
+.task.task-highlight{
+  outline:3px solid var(--accent);outline-offset:2px;
+  animation:task-pulse 2.2s ease-out;
+}
+@keyframes task-pulse{
+  0%   {box-shadow:0 0 0 0 rgba(224,132,0,.55)}
+  60%  {box-shadow:0 0 0 14px rgba(224,132,0,0)}
+  100% {box-shadow:0 0 0 0 rgba(224,132,0,0)}
+}
 .task::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;background:var(--site-color,var(--ch-default));border-radius:0 4px 4px 0}
 .task .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .task .site-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--site-color,var(--ch-default));letter-spacing:.01em}
@@ -1047,7 +1056,7 @@ function renderTaches() {
     if (fst && t.statut !== fst) return false;
     if (fp && t.pilote !== fp) return false;
     if (q) {
-      const blob = (t.site+' '+t.action+' '+t.pilote+' '+t.equipe+' '+t.consigne).toLowerCase();
+      const blob = (t.id+' '+t.site+' '+t.action+' '+t.pilote+' '+t.equipe+' '+t.consigne).toLowerCase();
       if (!blob.includes(q)) return false;
     }
     return true;
@@ -1713,21 +1722,49 @@ function renderMessages() {
   }).join('');
 }
 
+/* Cherche dans le DOM la card de tâche correspondant à l'ID (les cards
+   ont un <span class="id"> qui contient l'ID brut). */
+function findTaskCardEl(taskId) {
+  const spans = document.querySelectorAll('#taches-list .task .id');
+  for (let i = 0; i < spans.length; i++) {
+    if (spans[i].textContent === taskId) return spans[i].closest('.task');
+  }
+  return null;
+}
+
 window.openMessage = function(idEncoded, taskId) {
   const id = decodeURIComponent(idEncoded);
   markAsRead(id);
   renderMessageBadge();
   renderMessages();
-  // Bascule sur l'onglet Tâches et filtre sur l'ID de la tâche correspondante
+  // Bascule sur l'onglet Tâches et focus sur la tâche cible
   const task = state.taches.find(t => t.id === taskId);
-  if (task) {
-    gotoTab('taches');
-    document.getElementById('f-site').value   = '';
-    document.getElementById('f-statut').value = '';
-    document.getElementById('f-pilote').value = '';
-    document.getElementById('search').value   = task.id;
-    renderTaches();
+  if (!task) {
+    toast('Tâche introuvable (peut-être supprimée)', 'warn');
+    return;
   }
+  gotoTab('taches');
+  // Reset filtres + recherche par ID (le blob inclut désormais t.id, donc la
+  // recherche par ID isole bien la tâche cible)
+  document.getElementById('f-site').value   = '';
+  document.getElementById('f-statut').value = '';
+  document.getElementById('f-pilote').value = '';
+  document.getElementById('search').value   = task.id;
+  renderTaches();
+  // Si la tâche est terminée (statut Fait), ouvre la section repliée pour
+  // qu'elle soit visible
+  setTimeout(function() {
+    if (task.statut === 'Fait') {
+      const det = document.querySelector('#taches-list details.done-section');
+      if (det) det.open = true;
+    }
+    const card = findTaskCardEl(task.id);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('task-highlight');
+      setTimeout(function(){ card.classList.remove('task-highlight'); }, 2200);
+    }
+  }, 60);
 };
 
 window.markAllAndRefresh = function() {
