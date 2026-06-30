@@ -53,21 +53,26 @@ function getOpenRouterModel(){ return props().getProperty('OPENROUTER_MODEL') ||
 function getSS() { return SpreadsheetApp.getActive(); }
 
 function getSheet(name) {
-  const ss = getSS();
-  // 1. Recherche stricte
-  let sh = ss.getSheetByName(name);
+  const sh = findSheet(name);
   if (sh) return sh;
-  // 2. Recherche tolérante : sans accents, casse ignorée, espaces ignorés
-  const target = normalizeName(name);
-  const all = ss.getSheets();
-  sh = all.find(s => normalizeName(s.getName()) === target);
-  if (sh) return sh;
-  // 3. Erreur explicative : liste les onglets réellement présents
+  // Erreur explicative : liste les onglets réellement présents
+  const all = getSS().getSheets();
   throw new Error(
     'Onglet introuvable : "' + name + '". ' +
     'Onglets présents dans le Sheet : ' +
     all.map(s => '"' + s.getName() + '"').join(', ')
   );
+}
+
+/* Variante non-throw de getSheet : renvoie l'onglet trouvé (recherche
+   tolérante aux accents/casse/espaces) ou null. Utilisé par setup() pour
+   diagnostiquer sans casser. */
+function findSheet(name) {
+  const ss = getSS();
+  let sh = ss.getSheetByName(name);
+  if (sh) return sh;
+  const target = normalizeName(name);
+  return ss.getSheets().find(s => normalizeName(s.getName()) === target) || null;
 }
 function normalizeName(s) {
   return String(s || '')
@@ -543,14 +548,14 @@ function setup() {
 
   // 1. Onglets présents ?
   [SHEET_TACHES, SHEET_CONGES, SHEET_CHANTIERS, SHEET_USERS].forEach(name => {
-    const sh = ss.getSheetByName(name);
+    const sh = findSheet(name);
     if (sh) ok.push('Onglet trouvé : ' + name);
     else    ko.push('Onglet MANQUANT : ' + name + ' (vérifie l\'orthographe et les accents)');
   });
 
   // 2. En-têtes corrects ?
   function checkHeaders(name, expected) {
-    const sh = ss.getSheetByName(name);
+    const sh = findSheet(name);
     if (!sh) return;
     const headers = sh.getRange(1, 1, 1, expected.length).getValues()[0];
     const mismatch = expected.filter((h, i) => headers[i] !== h);
@@ -563,7 +568,7 @@ function setup() {
   checkHeaders(SHEET_USERS, USERS_COLS);
 
   // 4. Comptes utilisateurs présents ?
-  const shUsers = ss.getSheetByName(SHEET_USERS);
+  const shUsers = findSheet(SHEET_USERS);
   if (shUsers) {
     const nb = Math.max(0, shUsers.getLastRow() - 1);
     if (nb > 0) ok.push(nb + ' compte(s) utilisateur(s) chargé(s)');
