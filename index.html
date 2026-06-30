@@ -249,33 +249,9 @@ section.tab.hidden{display:none}
 .week-header.current .count{background:var(--primary-soft);color:var(--primary)}
 .week-header.past .lbl{color:var(--ink-muted)}
 .week-header.nodate .lbl{color:var(--ink-muted);font-style:italic}
-
-details.done-section{
-  margin-top:26px;
-  border-top:1px dashed var(--line);
-  padding-top:14px;
-}
-details.done-section > summary{
-  cursor:pointer;
-  font-weight:600;
-  color:var(--ink-soft);
-  font-size:13.5px;
-  padding:8px 4px;
-  list-style:none;
-  display:flex;align-items:center;gap:8px;
-}
-details.done-section > summary::-webkit-details-marker{display:none}
-details.done-section > summary::before{
-  content:'›';
-  font-size:20px;line-height:1;
-  transition:transform .2s ease;
-  color:var(--ink-muted);
-}
-details.done-section[open] > summary::before{transform:rotate(90deg)}
-details.done-section > summary .check{color:var(--success);font-weight:800}
-details.done-section .done-content{margin-top:12px}
-details.done-section .done-content .task{opacity:.78}
-details.done-section .done-content .task:hover{opacity:1}
+.week-header.done{margin-top:28px;border-bottom-color:var(--success)}
+.week-header.done .lbl{color:var(--success)}
+.week-header.done .count{background:var(--success-soft);color:var(--success)}
 
 /* ============================================================
    CHANTIERS
@@ -1123,14 +1099,13 @@ function renderTaches() {
     html += tasks.map(renderTaskCard).join('');
   });
 
-  // Section repliable pour les tâches terminées
+  // Tâches terminées : en-tête simple, cards visibles, tout en bas
   if (done.length > 0) {
-    html += '<details class="done-section">' +
-      '<summary><span class="check">✓</span> ' + done.length + ' tâche' + (done.length>1?'s':'') +
-      ' terminée' + (done.length>1?'s':'') + ' — clique pour ' +
-      (done.length>1?'les':'la') + ' voir</summary>' +
-      '<div class="done-content">' + done.map(renderTaskCard).join('') + '</div>' +
-      '</details>';
+    html += '<div class="week-header done">' +
+      '<span class="lbl">✓ Tâches terminées</span>' +
+      '<span class="count">' + done.length + ' tâche' + (done.length>1?'s':'') + '</span>' +
+      '</div>';
+    html += done.map(renderTaskCard).join('');
   }
 
   document.getElementById('taches-list').innerHTML = html;
@@ -1751,13 +1726,8 @@ window.openMessage = function(idEncoded, taskId) {
   document.getElementById('f-pilote').value = '';
   document.getElementById('search').value   = task.id;
   renderTaches();
-  // Si la tâche est terminée (statut Fait), ouvre la section repliée pour
-  // qu'elle soit visible
+  // Scroll vers la card + highlight visuel (orange pulse 2,2 s)
   setTimeout(function() {
-    if (task.statut === 'Fait') {
-      const det = document.querySelector('#taches-list details.done-section');
-      if (det) det.open = true;
-    }
     const card = findTaskCardEl(task.id);
     if (card) {
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
