@@ -945,6 +945,14 @@ function renderTaches() {
     }
     return true;
   });
+  // Tri chronologique par date de début (les plus proches en haut, l'inauguration en bas).
+  // Tâches sans date de début → reléguées à la fin.
+  list.sort((a, b) => {
+    if (!a.debut && !b.debut) return 0;
+    if (!a.debut) return 1;
+    if (!b.debut) return -1;
+    return a.debut.localeCompare(b.debut);
+  });
   const doneCount = list.filter(t=>t.statut==='Fait').length;
   const progCount = list.filter(t=>t.statut==='En cours').length;
   document.getElementById('taches-count').innerHTML =
