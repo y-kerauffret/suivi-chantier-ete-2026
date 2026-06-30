@@ -357,6 +357,60 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
 @keyframes toast-out{to{opacity:0;transform:translateY(-4px)}}
 
 /* ============================================================
+   CALENDRIER DES PRÉSENCES (sous l'onglet Congés)
+   ============================================================ */
+.cal-wrap{margin-top:22px;padding-top:18px;border-top:1px solid var(--line)}
+.cal-title{
+  font-size:14px;font-weight:700;color:var(--ink);
+  display:flex;align-items:center;gap:8px;margin-bottom:4px;
+}
+.cal-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px}
+.cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.cal-grid{
+  display:grid;
+  grid-template-columns:96px repeat(14, minmax(24px, 1fr));
+  gap:2px;
+  font-size:11px;
+  min-width:480px;
+}
+.cal-cell{
+  min-width:0;height:24px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:3px;
+  user-select:none;
+}
+.cal-header{
+  font-weight:700;color:var(--ink-soft);
+  font-size:10.5px;line-height:1.1;text-align:center;
+  flex-direction:column;
+}
+.cal-header .dow{font-size:9px;opacity:.75}
+.cal-header .dnum{font-size:11px;font-weight:800;color:var(--ink)}
+.cal-header.cal-today{background:var(--primary);color:#fff}
+.cal-header.cal-today .dow,.cal-header.cal-today .dnum{color:#fff}
+.cal-person{
+  justify-content:flex-start;padding-left:6px;
+  font-weight:600;color:var(--ink);
+  font-size:11.5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cal-person.cal-me{color:var(--primary)}
+.cal-present{background:var(--success-soft)}
+.cal-absent{background:var(--accent-soft);position:relative}
+.cal-absent::after{
+  content:'';position:absolute;inset:4px;
+  background:repeating-linear-gradient(45deg, transparent 0 3px, rgba(224,132,0,.35) 3px 5px);
+  border-radius:2px;
+}
+.cal-weekend{background:var(--bg-deep);opacity:.55}
+.cal-legend{
+  display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;
+  font-size:12px;color:var(--ink-soft);
+}
+.cal-lg-item{display:inline-flex;align-items:center;gap:6px}
+.cal-lg-swatch{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.05)}
+
+/* ============================================================
    MESSAGES (mentions @prénom dans les consignes)
    ============================================================ */
 nav.tabs button .badge{
@@ -424,9 +478,9 @@ nav.tabs button .badge{
     <div class="stats" id="header-stats"></div>
   </div>
   <nav class="tabs" role="tablist">
-    <button data-tab="taches" class="active" role="tab"><span class="ico">📋</span>Tâches</button>
+    <button data-tab="conges" class="active" role="tab"><span class="ico">🏖️</span>Congés</button>
+    <button data-tab="taches" role="tab"><span class="ico">📋</span>Tâches</button>
     <button data-tab="chantiers" role="tab"><span class="ico">🏗️</span>Chantiers</button>
-    <button data-tab="conges" role="tab"><span class="ico">🏖️</span>Congés</button>
     <button data-tab="messages" role="tab"><span class="ico">💬</span>Messages<span class="badge hidden" id="msg-badge">0</span></button>
     <button data-tab="assistant" role="tab"><span class="ico">🤖</span>Assistant</button>
   </nav>
@@ -434,7 +488,7 @@ nav.tabs button .badge{
 
 <main>
 
-  <section id="tab-taches" class="tab">
+  <section id="tab-taches" class="tab hidden">
     <div class="filters">
       <div class="search-row">
         <svg class="search-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -461,9 +515,9 @@ nav.tabs button .badge{
     <div class="chantiers-grid" id="chantiers-list"></div>
   </section>
 
-  <section id="tab-conges" class="tab hidden">
+  <section id="tab-conges" class="tab">
     <div class="count-bar">
-      <span>Qui est absent, et quand. <span class="muted">Données limitées au nécessaire.</span></span>
+      <span>Qui est absent, et quand. <span class="muted">Tu ne peux ajouter/modifier que tes propres congés.</span></span>
     </div>
     <div class="conges-list" id="conges-list"></div>
     <div class="add-bar">
@@ -472,6 +526,7 @@ nav.tabs button .badge{
         Ajouter un congé
       </button>
     </div>
+    <div id="conges-calendrier" class="cal-wrap"></div>
   </section>
 
   <section id="tab-messages" class="tab hidden">
@@ -829,7 +884,7 @@ async function bootstrap() {
 /* ============================================================
    NAVIGATION ONGLETS
    ============================================================ */
-const TABS = ['taches','chantiers','conges','messages','assistant'];
+const TABS = ['conges','taches','chantiers','messages','assistant'];
 document.querySelectorAll('nav.tabs button').forEach(function(b){
   b.onclick = function() {
     document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
@@ -1106,10 +1161,21 @@ function congeTag(c) {
 function initials(name) {
   return (name||'?').replace(/[()]/g,'').split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
 }
+/* True si l'utilisateur connecté a le droit d'éditer/supprimer ce congé :
+   - l'admin peut toujours ;
+   - les autres uniquement pour leurs propres congés. */
+function canEditConge(conge) {
+  const sess = getSession();
+  if (!sess) return false;
+  if (sess.role === 'admin') return true;
+  return normalizeLogin(conge.personne) === normalizeLogin(sess.login);
+}
+
 function renderConges() {
   const el = document.getElementById('conges-list');
   if (!state.conges.length) {
     el.innerHTML = '<div class="empty"><span class="em">🏖️</span>Aucun congé enregistré pour l\'instant.</div>';
+    renderCalendar();
     return;
   }
   // On garde l'index d'origine pour pouvoir éditer/supprimer côté serveur
@@ -1117,13 +1183,16 @@ function renderConges() {
   indexed.sort((a,b)=>(a.c.du||'').localeCompare(b.c.du||''));
   el.innerHTML = indexed.map(x=>{
     const c = x.c, i = x.i;
+    const editable = canEditConge(c);
     return '<div class="leave">'+
       '<div class="avatar">'+initials(c.personne)+'</div>'+
       '<div class="body">'+
         '<div class="top">'+
           '<span class="name">'+escapeHtml(c.personne)+'</span>'+
           congeTag(c)+
-          '<button class="edit-btn" style="margin-left:auto" onclick="editConge('+i+')">Modifier</button>'+
+          (editable
+            ? '<button class="edit-btn" style="margin-left:auto" onclick="editConge('+i+')">Modifier</button>'
+            : '<span class="edit-btn" style="margin-left:auto;cursor:default;opacity:.5" title="Tu ne peux modifier que tes propres congés">🔒</span>')+
         '</div>'+
         '<div class="dates"><span>Du <b>'+fmtDate(c.du)+'</b> au <b>'+fmtDate(c.au)+'</b></span></div>'+
         (c.remplacant?'<div class="remplacant">Remplaçant·e : <b>'+escapeHtml(c.remplacant)+'</b></div>':'')+
@@ -1131,11 +1200,36 @@ function renderConges() {
       '</div>'+
     '</div>';
   }).join('');
+  renderCalendar();
 }
+/* Applique les bornes de période et le verrou sur "Personne" au formulaire
+   de congé, selon que l'utilisateur est admin ou non. */
+function prepConge(personnePrefill) {
+  const sess = getSession();
+  const isAdmin = sess && sess.role === 'admin';
+  const inputPersonne = document.getElementById('c-personne');
+  inputPersonne.value = personnePrefill;
+  inputPersonne.readOnly = !isAdmin;
+  inputPersonne.style.background = isAdmin ? '' : 'var(--bg-deep)';
+  inputPersonne.style.cursor = isAdmin ? '' : 'not-allowed';
+  // Bornes de période : prises de meta si dispo, sinon hardcodées
+  const dmin = (state.meta && state.meta.periodeDebut) || '2026-06-06';
+  const dmax = (state.meta && state.meta.periodeFin)   || '2026-09-01';
+  ['c-du','c-au'].forEach(id => {
+    const el = document.getElementById(id);
+    el.setAttribute('min', dmin);
+    el.setAttribute('max', dmax);
+  });
+}
+
 window.editConge = function(i) {
-  editingConge = i;
   const c = state.conges[i];
-  document.getElementById('c-personne').value   = c.personne;
+  if (!canEditConge(c)) {
+    toast('Tu ne peux modifier que tes propres congés', 'error');
+    return;
+  }
+  editingConge = i;
+  prepConge(c.personne || '');
   document.getElementById('c-du').value         = c.du || '';
   document.getElementById('c-au').value         = c.au || '';
   document.getElementById('c-remplacant').value = c.remplacant || '';
@@ -1144,8 +1238,11 @@ window.editConge = function(i) {
   document.getElementById('dlg-conge').showModal();
 };
 document.getElementById('add-conge').onclick = function() {
+  const sess = getSession();
+  if (!sess) { toast('Reconnecte-toi pour ajouter un congé', 'error'); return; }
   editingConge = null;
-  ['c-personne','c-du','c-au','c-remplacant','c-remarque'].forEach(id=>document.getElementById(id).value='');
+  prepConge(sess.login);
+  ['c-du','c-au','c-remplacant','c-remarque'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('c-delete').classList.add('hidden');
   document.getElementById('dlg-conge').showModal();
 };
@@ -1181,6 +1278,112 @@ document.getElementById('dlg-conge').addEventListener('close', async function() 
     catch (e) { state.conges.splice(idx,0,prev); renderConges(); toast('Suppression échouée : '+e.message,'error'); }
   }
 });
+
+/* ============================================================
+   CALENDRIER DES PRÉSENCES (14 jours x agents)
+   ============================================================ */
+
+const DOW_FR = ['D','L','M','Me','J','V','S'];
+
+function ymd(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+function isWeekend(d) {
+  const wd = d.getDay();
+  return wd === 0 || wd === 6;
+}
+
+function renderCalendar() {
+  const container = document.getElementById('conges-calendrier');
+  if (!container) return;
+
+  // 14 jours à partir d'aujourd'hui
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const days = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    days.push(d);
+  }
+  const todayStr = ymd(today);
+
+  // Personnes : depuis state.users si dispo, sinon depuis les congés
+  let people = (state.users || []).map(u => u.login);
+  if (people.length === 0) {
+    people = Array.from(new Set(state.conges.map(c => c.personne).filter(Boolean)));
+  }
+  people.sort((a,b) => a.localeCompare(b, 'fr'));
+
+  // Index des absences : { personneNormalisée : [{du, au}] }
+  const absences = {};
+  state.conges.forEach(c => {
+    if (!c.personne || !c.du || !c.au) return;
+    const k = normalizeLogin(c.personne);
+    if (!absences[k]) absences[k] = [];
+    absences[k].push({ du: c.du, au: c.au });
+  });
+  function isAbsent(person, dStr) {
+    const list = absences[normalizeLogin(person)] || [];
+    return list.some(a => a.du <= dStr && dStr <= a.au);
+  }
+
+  const sess = getSession();
+  const meNorm = sess ? normalizeLogin(sess.login) : '';
+
+  // Titre + sous-titre
+  const firstLabel = days[0].getDate() + '/' + (days[0].getMonth()+1);
+  const lastLabel  = days[13].getDate() + '/' + (days[13].getMonth()+1);
+
+  let html = '<div class="cal-title">📅 Présences sur les 14 prochains jours</div>';
+  html += '<div class="cal-sub">Du ' + firstLabel + ' au ' + lastLabel + ' — clique sur un nom dans la liste ci-dessus pour modifier ses congés (si tu en as le droit).</div>';
+
+  html += '<div class="cal-scroll"><div class="cal-grid">';
+  // Coin vide en haut-gauche
+  html += '<div class="cal-cell"></div>';
+  // En-têtes jours
+  days.forEach(d => {
+    const we = isWeekend(d);
+    const isToday = ymd(d) === todayStr;
+    let cls = 'cal-cell cal-header';
+    if (we) cls += ' cal-weekend';
+    if (isToday) cls += ' cal-today';
+    html += '<div class="' + cls + '">' +
+      '<span class="dow">' + DOW_FR[d.getDay()] + '</span>' +
+      '<span class="dnum">' + d.getDate() + '</span>' +
+    '</div>';
+  });
+  // Lignes par personne
+  people.forEach(person => {
+    const meCls = (normalizeLogin(person) === meNorm) ? ' cal-me' : '';
+    html += '<div class="cal-cell cal-person' + meCls + '" title="' + escapeHtml(person) + '">' +
+      escapeHtml(person) + '</div>';
+    days.forEach(d => {
+      const dStr = ymd(d);
+      const we = isWeekend(d);
+      const abs = isAbsent(person, dStr);
+      let cls = 'cal-cell';
+      if (we) cls += ' cal-weekend';
+      else if (abs) cls += ' cal-absent';
+      else cls += ' cal-present';
+      const status = we ? 'Week-end' : (abs ? 'Absent' : 'Présent');
+      const title = person + ' — ' + d.getDate() + '/' + (d.getMonth()+1) + ' — ' + status;
+      html += '<div class="' + cls + '" title="' + escapeHtml(title) + '"></div>';
+    });
+  });
+  html += '</div></div>';
+  // Légende
+  html += '<div class="cal-legend">' +
+    '<span class="cal-lg-item"><span class="cal-lg-swatch cal-present"></span>Présent</span>' +
+    '<span class="cal-lg-item"><span class="cal-lg-swatch cal-absent"></span>Absent</span>' +
+    '<span class="cal-lg-item"><span class="cal-lg-swatch cal-weekend"></span>Week-end</span>' +
+    '<span class="cal-lg-item"><span class="cal-lg-swatch" style="background:var(--primary)"></span>Aujourd\'hui</span>' +
+    '</div>';
+
+  container.innerHTML = html;
+}
 
 /* ============================================================
    MESSAGES — mentions @prénom dans les consignes
