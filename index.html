@@ -356,6 +356,55 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
 @keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes toast-out{to{opacity:0;transform:translateY(-4px)}}
 
+/* ============================================================
+   MESSAGES (mentions @prénom dans les consignes)
+   ============================================================ */
+nav.tabs button .badge{
+  display:inline-grid;place-items:center;
+  min-width:18px;height:18px;padding:0 5px;
+  border-radius:var(--r-pill);
+  background:var(--danger);color:#fff;
+  font-size:10.5px;font-weight:700;line-height:1;
+  margin-left:4px;
+  animation:badge-pulse 1.6s ease-in-out infinite;
+}
+@keyframes badge-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+.mention{
+  color:var(--primary);font-weight:700;
+  background:var(--primary-soft);
+  padding:1px 7px;border-radius:var(--r-pill);
+  font-size:.92em;
+  white-space:nowrap;
+}
+.mention.is-me{background:var(--accent-soft);color:var(--accent)}
+
+.msg-actions{display:flex;justify-content:flex-end;margin-bottom:12px}
+.msg-card{
+  position:relative;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px 14px 14px 18px;margin-bottom:10px;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:box-shadow .15s ease, transform .12s ease;
+}
+.msg-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.msg-card::before{
+  content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;
+  background:var(--ink-muted);border-radius:0 4px 4px 0;
+}
+.msg-card.unread{border-color:#c8dbf0;background:#f4f8fc}
+.msg-card.unread::before{background:var(--primary)}
+.msg-card .head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:13px;color:var(--ink-soft)}
+.msg-card .head .new-dot{width:8px;height:8px;border-radius:50%;background:var(--primary);flex-shrink:0;box-shadow:0 0 0 3px rgba(12,79,135,.15)}
+.msg-card .head .auteur{font-weight:700;color:var(--ink)}
+.msg-card .head .when{color:var(--ink-muted);margin-left:auto;font-size:12px;font-variant-numeric:tabular-nums}
+.msg-card .body{font-size:14.5px;color:var(--ink);line-height:1.5;margin-bottom:10px;white-space:pre-wrap;word-wrap:break-word}
+.msg-card .ctx{font-size:12.5px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.msg-card .ctx .arrow{color:var(--ink-muted);font-weight:700}
+.msg-card .ctx .site-chip{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:var(--site-color,var(--ch-default))}
+.msg-card .ctx .site-chip::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--site-color,var(--ch-default))}
+.msg-card .ctx .action-txt{color:var(--ink-soft)}
+
 @media (max-width:420px){
   header.app .stats{width:100%;margin-left:0;margin-top:6px}
   .filters{top:96px}
@@ -378,7 +427,8 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
     <button data-tab="taches" class="active" role="tab"><span class="ico">📋</span>Tâches</button>
     <button data-tab="chantiers" role="tab"><span class="ico">🏗️</span>Chantiers</button>
     <button data-tab="conges" role="tab"><span class="ico">🏖️</span>Congés</button>
-    <button data-tab="assistant" role="tab"><span class="ico">💬</span>Assistant</button>
+    <button data-tab="messages" role="tab"><span class="ico">💬</span>Messages<span class="badge hidden" id="msg-badge">0</span></button>
+    <button data-tab="assistant" role="tab"><span class="ico">🤖</span>Assistant</button>
   </nav>
 </header>
 
@@ -422,6 +472,12 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
         Ajouter un congé
       </button>
     </div>
+  </section>
+
+  <section id="tab-messages" class="tab hidden">
+    <div class="count-bar" id="messages-count"></div>
+    <div class="msg-actions" id="messages-actions"></div>
+    <div id="messages-list"></div>
   </section>
 
   <section id="tab-assistant" class="tab hidden">
@@ -773,15 +829,20 @@ async function bootstrap() {
 /* ============================================================
    NAVIGATION ONGLETS
    ============================================================ */
+const TABS = ['taches','chantiers','conges','messages','assistant'];
 document.querySelectorAll('nav.tabs button').forEach(function(b){
   b.onclick = function() {
     document.querySelectorAll('nav.tabs button').forEach(x=>x.classList.remove('active'));
     b.classList.add('active');
-    ['taches','chantiers','conges','assistant'].forEach(t=>
+    TABS.forEach(t=>
       document.getElementById('tab-'+t).classList.toggle('hidden', t!==b.dataset.tab));
     window.scrollTo({ top:0, behavior:'smooth' });
   };
 });
+function gotoTab(tabName) {
+  const btn = document.querySelector('nav.tabs button[data-tab="' + tabName + '"]');
+  if (btn) btn.click();
+}
 
 /* ============================================================
    FILTRES / SELECTS
@@ -863,7 +924,7 @@ function renderTaches() {
       '<div class="status-row">'+sts+'</div>'+
       '<div class="relais">'+
         '<div class="lbl"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Consigne de relais</div>'+
-        '<textarea onchange="setConsigne(\''+t.id+'\',this.value)" placeholder="Laisse une consigne pour le ou la collègue qui prendra la suite…">'+escapeHtml(t.consigne||'')+'</textarea>'+
+        '<textarea onchange="setConsigne(\''+t.id+'\',this.value)" placeholder="Laisse une consigne… (utilise @prénom pour notifier un·e collègue, ex. @Dalila)">'+escapeHtml(t.consigne||'')+'</textarea>'+
       '</div>'+
       (t.maj?'<div class="maj">🕒 Mise à jour : '+escapeHtml(t.maj)+'</div>':'')+
     '</div>';
@@ -1122,6 +1183,217 @@ document.getElementById('dlg-conge').addEventListener('close', async function() 
 });
 
 /* ============================================================
+   MESSAGES — mentions @prénom dans les consignes
+   ============================================================ */
+
+/* Normalise un prénom pour comparaison : sans accents/casse/espaces.
+   Doit rester aligné avec normalizeLogin() côté Apps Script. */
+function normalizeLogin(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/* Extrait les @mentions d'un texte. Renvoie un tableau de prénoms (sans le @).
+   Caractères acceptés : lettres latines + accents. */
+function extractMentions(text) {
+  return [...String(text || '').matchAll(/@([A-Za-zÀ-ÿ]+)/g)].map(m => m[1]);
+}
+
+/* True si le login passé en argument est mentionné dans le texte (comparaison
+   tolérante aux accents/casse). */
+function isMentioned(login, text) {
+  const target = normalizeLogin(login);
+  if (!target) return false;
+  return extractMentions(text).some(m => normalizeLogin(m) === target);
+}
+
+/* ID stable d'un message = id de la tâche + contenu de la consigne.
+   Si la consigne change, l'ID change → le message redevient non-lu. */
+function messageId(task) {
+  return task.id + '|' + String(task.consigne || '').trim();
+}
+
+/* Stockage local des messages déjà lus, séparé par utilisateur connecté
+   (pour qu'un changement de compte sur le même appareil ne mélange pas). */
+function readKey() {
+  const sess = getSession();
+  return 'messages_read_' + (sess ? normalizeLogin(sess.login) : 'anon') + '_v1';
+}
+function getReadMessages() {
+  try { return new Set(JSON.parse(localStorage.getItem(readKey()) || '[]')); }
+  catch (e) { return new Set(); }
+}
+function setReadMessages(s) {
+  localStorage.setItem(readKey(), JSON.stringify([...s]));
+}
+function markAsRead(id) {
+  const s = getReadMessages();
+  s.add(id);
+  setReadMessages(s);
+}
+function markAllAsRead() {
+  const s = getReadMessages();
+  getMyMessages().forEach(m => s.add(m.id));
+  setReadMessages(s);
+}
+
+/* Liste des consignes qui mentionnent l'utilisateur connecté, enrichie
+   avec auteur (extrait de la colonne MAJ "AAAA-MM-JJ — Prénom") et date. */
+function getMyMessages() {
+  const sess = getSession();
+  if (!sess) return [];
+  const me = sess.login;
+  return state.taches
+    .filter(t => t.consigne && String(t.consigne).trim() && isMentioned(me, t.consigne))
+    .map(t => ({
+      id:      messageId(t),
+      task:    t,
+      texte:   t.consigne,
+      auteur:  parseMajAuteur(t.maj),
+      when:    parseMajDate(t.maj),
+      whenRaw: t.maj || ''
+    }));
+}
+
+function parseMajAuteur(maj) {
+  if (!maj) return '';
+  const m = String(maj).match(/—\s*(.+?)\s*$/);
+  return m ? m[1] : '';
+}
+function parseMajDate(maj) {
+  if (!maj) return '';
+  const m = String(maj).match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
+function relativeDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.floor((startOfToday - d) / (1000*60*60*24));
+  if (diff < 0)  return fmtDate(dateStr);
+  if (diff === 0) return "aujourd'hui";
+  if (diff === 1) return 'hier';
+  if (diff < 7)   return 'il y a ' + diff + ' jours';
+  return fmtDate(dateStr);
+}
+
+/* Rendu du corps du message : échappe le HTML, puis stylise les @mentions
+   (en mettant en valeur celle qui correspond à l'utilisateur connecté). */
+function renderMessageBody(text, me) {
+  const escaped = escapeHtml(text || '');
+  const meNorm = normalizeLogin(me);
+  return escaped.replace(/@([A-Za-zÀ-ÿ]+)/g, function(_, name) {
+    const isMe = normalizeLogin(name) === meNorm;
+    return '<span class="mention' + (isMe ? ' is-me' : '') + '">@' + name + '</span>';
+  });
+}
+
+function renderMessageBadge() {
+  const el = document.getElementById('msg-badge');
+  if (!el) return;
+  if (!getSession()) { el.classList.add('hidden'); return; }
+  const read = getReadMessages();
+  const unread = getMyMessages().filter(m => !read.has(m.id)).length;
+  if (unread > 0) {
+    el.textContent = unread;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+
+function renderMessages() {
+  const sess = getSession();
+  const messages = getMyMessages();
+  const read = getReadMessages();
+
+  // Tri : non-lus d'abord, puis par date décroissante
+  messages.sort((a, b) => {
+    const ra = read.has(a.id) ? 1 : 0;
+    const rb = read.has(b.id) ? 1 : 0;
+    if (ra !== rb) return ra - rb;
+    return (b.whenRaw || '').localeCompare(a.whenRaw || '');
+  });
+
+  const unread = messages.filter(m => !read.has(m.id)).length;
+  const total = messages.length;
+
+  const counter = document.getElementById('messages-count');
+  if (total === 0) {
+    counter.innerHTML = '<span>Aucun message ne te concerne pour l\'instant.</span>';
+  } else {
+    counter.innerHTML = '<span><strong>' + total + '</strong> message' + (total>1?'s':'') +
+      ' te concerne' + (total>1?'nt':'') +
+      (unread > 0 ? '</span><span class="mini-stat prog">' + unread + ' non lu' + (unread>1?'s':'') + '</span>' : '</span>');
+  }
+
+  const actions = document.getElementById('messages-actions');
+  actions.innerHTML = unread > 0
+    ? '<button class="btn ghost sm" onclick="markAllAndRefresh()">✓ Tout marquer comme lu</button>'
+    : '';
+
+  const list = document.getElementById('messages-list');
+  if (total === 0) {
+    const me = sess ? sess.login : 'TonPrenom';
+    list.innerHTML = '<div class="empty"><span class="em">💬</span>Tu n\'as aucun message pour le moment.<br>' +
+      '<span style="font-size:13px">Quand un collègue écrira <span class="mention">@' + escapeHtml(me) + '</span> ' +
+      'dans la consigne d\'une tâche, ça apparaîtra ici.</span></div>';
+    return;
+  }
+
+  list.innerHTML = messages.map(m => {
+    const isUnread = !read.has(m.id);
+    const col = siteColor(m.task.site);
+    const when = relativeDate(m.when);
+    return '<div class="msg-card ' + (isUnread ? 'unread' : '') + '" style="--site-color:' + col + '" ' +
+      'onclick="openMessage(\'' + encodeURIComponent(m.id) + '\',\'' + m.task.id + '\')">' +
+      '<div class="head">' +
+        (isUnread ? '<span class="new-dot" title="Non lu"></span>' : '') +
+        (m.auteur ? '<span>De <span class="auteur">' + escapeHtml(m.auteur) + '</span></span>'
+                  : '<span class="auteur">—</span>') +
+        (when ? '<span class="when">' + when + '</span>' : '') +
+      '</div>' +
+      '<div class="body">' + renderMessageBody(m.texte, sess.login) + '</div>' +
+      '<div class="ctx">' +
+        '<span class="arrow">↪</span>' +
+        '<span>Sur la tâche</span>' +
+        '<span class="site-chip">' + escapeHtml(m.task.site) + '</span>' +
+        '<span class="action-txt">' + escapeHtml(m.task.action) + '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+window.openMessage = function(idEncoded, taskId) {
+  const id = decodeURIComponent(idEncoded);
+  markAsRead(id);
+  renderMessageBadge();
+  renderMessages();
+  // Bascule sur l'onglet Tâches et filtre sur l'ID de la tâche correspondante
+  const task = state.taches.find(t => t.id === taskId);
+  if (task) {
+    gotoTab('taches');
+    document.getElementById('f-site').value   = '';
+    document.getElementById('f-statut').value = '';
+    document.getElementById('f-pilote').value = '';
+    document.getElementById('search').value   = task.id;
+    renderTaches();
+  }
+};
+
+window.markAllAndRefresh = function() {
+  markAllAsRead();
+  renderMessages();
+  renderMessageBadge();
+  toast('Tous les messages marqués comme lus', 'success');
+};
+
+/* ============================================================
    ASSISTANT — relais via le pont
    ============================================================ */
 function addMsg(role, text) {
@@ -1213,6 +1485,8 @@ function renderAll() {
   rebuildChantiers();
   renderChantiers();
   renderConges();
+  renderMessages();
+  renderMessageBadge();
 }
 bootstrap();
 </script>
