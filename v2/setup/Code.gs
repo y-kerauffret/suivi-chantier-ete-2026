@@ -39,6 +39,10 @@ const SESSION_TTL_SECONDS = 24 * 60 * 60;  // 24h de session
 const MAX_LOGIN_ATTEMPTS  = 5;             // tentatives avant verrouillage
 const LOCKOUT_TTL_SECONDS = 15 * 60;       // 15 min de verrouillage
 
+// Congés — bornes de la période couverte par l'outil
+const PERIODE_DEBUT = '2026-06-06';
+const PERIODE_FIN   = '2026-09-01';
+
 // ============================================================
 //  PROPRIÉTÉS (token + clé OpenRouter — stockés côté serveur)
 // ============================================================
@@ -122,6 +126,24 @@ function normalizeLogin(s) {
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .trim();
+}
+
+/* Lit la liste des utilisateurs actifs (juste login + role, JAMAIS le mdp).
+   Exposée au front via opState pour alimenter le calendrier des présences
+   et l'éventuelle autocomplete des @mentions. */
+function readUsers() {
+  const sh = findSheet(SHEET_USERS);
+  if (!sh) return [];
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return [];
+  const data = sh.getRange(2, 1, lastRow - 1, USERS_COLS.length).getValues();
+  return data
+    .filter(function(row){
+      return row[3] === true || row[3] === 'TRUE' || row[3] === 'true' || row[3] === 1;
+    })
+    .map(function(row){
+      return { login: row[0], role: row[2] || 'editeur' };
+    });
 }
 
 /* Cherche un utilisateur actif par son login (comparaison normalisée).
@@ -360,9 +382,12 @@ function json(payload) {
 function opState() {
   return {
     meta: {
-      titre: "Suivi de l'été 2026",
-      periode: '6 juin → 1er septembre 2026'
+      titre:        "Suivi de l'été 2026",
+      periode:      '6 juin → 1er septembre 2026',
+      periodeDebut: PERIODE_DEBUT,
+      periodeFin:   PERIODE_FIN
     },
+    users: readUsers(),
     statuts: STATUTS,
     priorites: ['Faible','Moyenne','Haute','Critique'],
     taches: readRows(SHEET_TACHES, TACHES_COLS).map(t => ({
@@ -464,12 +489,56 @@ function findRowById(sh, id) {
 // ============================================================
 //  OPÉRATIONS — CONGÉS
 //  (index = position 0-based dans la liste, telle que renvoyée par state)
+//
+//  Sécurité :
+//  - Si la requête utilise une session signée, l'agent ne peut créer
+//    qu'un congé à son nom, et ne peut éditer/supprimer QUE les siens.
+//  - L'admin (role === 'admin') peut tout faire.
+//  - Le mode legacy (token partagé sans session) laisse passer comme
+//    avant — à retirer une fois le LOT 1.5 fait.
 // ============================================================
+
+/* Vérifie que les dates du congé sont dans la période couverte.
+   Renvoie un message d'erreur ou null si tout est ok. */
+function validateLeaveDates(du, au) {
+  if (du && (du < PERIODE_DEBUT || du > PERIODE_FIN)) {
+    return 'La date de début doit être entre le ' + PERIODE_DEBUT + ' et le ' + PERIODE_FIN + '.';
+  }
+  if (au && (au < PERIODE_DEBUT || au > PERIODE_FIN)) {
+    return 'La date de fin doit être entre le ' + PERIODE_DEBUT + ' et le ' + PERIODE_FIN + '.';
+  }
+  if (du && au && du > au) {
+    return 'La date de début doit être antérieure ou égale à la date de fin.';
+  }
+  return null;
+}
+
+/* Renvoie true si la requête est authentifiée par une session signée
+   (par opposition au mode legacy avec token partagé). */
+function isSessionAuth(p) {
+  return !!(p.actor && p.role);
+}
+
 function opLeaveCreate(p) {
   const sh = getSheet(SHEET_CONGES);
   const f = p.fields || {};
+
+  // Restriction : un non-admin ne peut créer qu'à son propre nom
+  let personne = String(f.personne || '').trim();
+  if (isSessionAuth(p)) {
+    if (p.role !== 'admin') {
+      personne = p.actor;  // force le nom au login authentifié
+    } else if (!personne) {
+      personne = p.actor;  // admin sans nom fourni → défaut son login
+    }
+  }
+  if (!personne) return { error: 'Le nom de la personne est requis.' };
+
+  const dateErr = validateLeaveDates(f.du, f.au);
+  if (dateErr) return { error: dateErr };
+
   sh.appendRow([
-    f.personne   || '',
+    personne,
     f.du         || '',
     f.au         || '',
     f.remplacant || '',
@@ -483,12 +552,26 @@ function opLeaveUpdate(p) {
   const sh = getSheet(SHEET_CONGES);
   const rowNum = p.index + 2;
   if (rowNum > sh.getLastRow()) return { error: 'Index hors plage' };
+
+  // Restriction : non-admin ne peut éditer que ses propres congés
+  if (isSessionAuth(p) && p.role !== 'admin') {
+    const existingPersonne = String(sh.getRange(rowNum, 1).getValue() || '').trim();
+    if (normalizeLogin(existingPersonne) !== normalizeLogin(p.actor)) {
+      return { error: 'Tu ne peux modifier que tes propres congés.' };
+    }
+  }
+
   const f = p.fields || {};
+  const dateErr = validateLeaveDates(f.du, f.au);
+  if (dateErr) return { error: dateErr };
+
   const fmap = {
     personne:'Personne', du:'Du', au:'Au',
     remplacant:'Remplacant', remarque:'Remarque'
   };
-  Object.keys(f).forEach(k => {
+  Object.keys(f).forEach(function(k) {
+    // Un non-admin ne peut pas changer le nom de la personne
+    if (isSessionAuth(p) && p.role !== 'admin' && k === 'personne') return;
     const colName = fmap[k];
     if (!colName) return;
     const colIdx = CONGES_COLS.indexOf(colName);
@@ -503,6 +586,15 @@ function opLeaveDelete(p) {
   const sh = getSheet(SHEET_CONGES);
   const rowNum = p.index + 2;
   if (rowNum > sh.getLastRow()) return { error: 'Index hors plage' };
+
+  // Restriction : non-admin ne peut supprimer que ses propres congés
+  if (isSessionAuth(p) && p.role !== 'admin') {
+    const existingPersonne = String(sh.getRange(rowNum, 1).getValue() || '').trim();
+    if (normalizeLogin(existingPersonne) !== normalizeLogin(p.actor)) {
+      return { error: 'Tu ne peux supprimer que tes propres congés.' };
+    }
+  }
+
   sh.deleteRow(rowNum);
   return { ok: true };
 }
