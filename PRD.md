@@ -1,8 +1,8 @@
 # PRD — Assistant de suivi de l'été 2026
 
 > **Document de cadrage produit (Product Requirements Document)**
-> Version 0.3 — ajout du volet **authentification & sécurité** (demande du DSI).
-> Date : 2026-06-29 (versions antérieures : 0.2 le 2026-06-20)
+> Version 0.4 — simplification de l'auth (mots de passe en clair, V2.5).
+> Date : 2026-06-30 (historique : 0.3 le 2026-06-29, 0.2 le 2026-06-20)
 
 ---
 
@@ -69,7 +69,7 @@ moment des passations** (ex. « relancer l'entreprise pour les 3 classes/bureaux
 - **6-7 collègues** (chefs de service, agents : Enfance, HR, manutention, Éducation…) — profils
   **non techniques**, souvent sur **smartphone**, sur le terrain. Ils doivent pouvoir : voir leurs
   tâches, cocher « fait », laisser une consigne, demander un récap.
-- **19 comptes individuels** ont été provisionnés (cf. § 11). L'inscription est faite **par le
+- **18 comptes individuels** ont été provisionnés (cf. § 11). L'inscription est faite **par le
   directeur en amont** : les agents reçoivent simplement leur identifiant + mot de passe et n'ont
   rien à créer eux-mêmes. La promesse « accès en moins de 2 minutes » reste tenue : 2 champs à
   saisir une fois, session valable 24 h, l'identifiant est mémorisé ensuite.
@@ -190,9 +190,21 @@ Première date, Dernière date.
 > partagé » initial (« qui a le lien peut entrer ») n'est plus la voie nominale. Détail ci-dessous.
 > Livré en deux lots : V2.3 (backend Apps Script) et V2.4 (bascule du front), tous deux le 29/06/2026.
 
-### 11.1 Authentification individuelle (V2.3 / V2.4)
+> **Note d'évolution — 30 juin 2026 (V2.5) — simplification.** Après une journée de mise en
+> production, le système hash + sel décrit ci-dessous (§ 11.1) a été **simplifié** : les mots
+> de passe sont désormais **stockés en clair** dans l'onglet `Utilisateurs` de la Sheet (cf.
+> § 11.1bis). **Pourquoi** : périmètre limité (6-7 agents, 3 mois, suivi interne de chantier),
+> Sheet partagée uniquement avec le directeur, complexité opérationnelle (régénération de
+> hash) jugée disproportionnée au risque réel. **Bénéfice perdu** assumé : si la Sheet venait
+> à fuiter (compte Google compromis, partage involontaire), les mots de passe seraient
+> lisibles tels quels — alors qu'avec les hashes ils auraient été inexploitables. **Tout le
+> reste** (sessions signées HMAC, rate-limit 5/15 min, traçabilité par session, clé OpenRouter
+> cachée, dépôt privé) est **conservé tel quel**. Le § 11.1 ci-dessous reste à titre
+> historique pour expliquer la démarche initiale demandée par le DSI.
 
-- **19 comptes** ont été créés et provisionnés dans la Google Sheet (onglet `Utilisateurs`,
+### 11.1 Authentification individuelle (V2.3 / V2.4 — historique, voir § 11.1bis pour le système actif)
+
+- **18 comptes** ont été créés et provisionnés dans la Google Sheet (onglet `Utilisateurs`,
   colonnes : `Login`, `Hash`, `Sel`, `Role`, `Actif`).
 - **Identifiant** = prénom de l'agent (comparaison **tolérante** : casse, accents et espaces
   ignorés, pour éviter les blocages liés à une majuscule manquante).
@@ -206,6 +218,22 @@ Première date, Dernière date.
 - **Rôles** : deux rôles définis (`admin`, `editeur`). Le rôle est exposé côté client mais n'est
   pas encore exploité pour différencier les permissions — prévu pour une évolution si le besoin
   se confirme (par défaut tout le monde peut tout éditer, comme avant).
+
+### 11.1bis Authentification individuelle (V2.5 — système actuellement en production)
+
+- **18 comptes actifs** dans la Google Sheet, onglet `Utilisateurs`, colonnes simplifiées :
+  `Login`, `MotDePasse`, `Role`, `Actif`. La Sheet n'est partagée qu'avec le directeur.
+- **Mots de passe en clair** dans la colonne `MotDePasse`. Le backend compare l'égalité stricte
+  (`password === user.password`). Aucune fonction de hashing utilisée côté serveur.
+- **Identifiant** = prénom de l'agent, même comparaison tolérante qu'en V2.3 (casse / accents /
+  espaces ignorés).
+- **Distribution** : inchangé — le directeur envoie son couple à chaque agent par le canal de
+  son choix (mail interne, message direct, etc.).
+- **Rôles** : `admin` (un seul, Yannick) et `editeur` (les 17 autres). Comme en V2.3, le rôle
+  n'est pas encore exploité côté front pour différencier les permissions.
+- **Procédure de réinitialisation** : éditer directement la cellule `MotDePasse` correspondante
+  dans la Sheet, puis communiquer le nouveau mot de passe à l'agent concerné. Pas de
+  redéploiement Apps Script nécessaire.
 
 ### 11.2 Sessions
 
@@ -245,12 +273,9 @@ Première date, Dernière date.
 
 - **Retirer le mode legacy** (`token=ete2026`) côté serveur — il est encore accepté pour
   permettre une bascule sans casse, mais le front V2.4 ne l'utilise plus. À supprimer dès que
-  les 19 agents sont effectivement passés sur l'auth (cible : courant juillet 2026).
+  les 18 agents sont effectivement passés sur l'auth (cible : courant juillet 2026).
 - **Exploiter le rôle `admin`** côté front si on veut restreindre certaines actions (ex.
   suppression de tâche, gestion des congés des autres).
-- **Procédure de réinitialisation de mot de passe** : à formaliser (aujourd'hui = le directeur
-  régénère un hash via le script Node de génération, qu'il faut alors recréer ponctuellement
-  hors-repo).
 
 ---
 
@@ -269,7 +294,8 @@ Première date, Dernière date.
 - **Phase 2 — Version partagée** : Google Sheet + pont Apps Script + hébergement GitHub Pages + clé
   OpenRouter cachée + écriture par l'assistant. ✅ **livré (V2 → V2.2)**.
 - **Phase 2.5 — Sécurisation (demande DSI)** : authentification individuelle login + mot de passe,
-  sessions signées 24 h, rate-limiting, traçabilité par session. ✅ **livré le 29/06/2026 (V2.3 + V2.4)**.
+  sessions signées 24 h, rate-limiting, traçabilité par session. ✅ **livré le 29/06/2026 (V2.3 + V2.4)**,
+  **simplifié le 30/06/2026 (V2.5)** par passage des mots de passe en clair côté Sheet (cf. § 11.1bis).
   Reliquat : retirer le mode legacy backend une fois les agents tous basculés (cf. § 11.6).
 - **Phase 3 — Confort** : vue planning, filtres avancés, récap mail quotidien.
 
