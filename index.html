@@ -368,10 +368,10 @@ dialog h3{margin:0 0 14px;font-size:18px;font-weight:700;color:var(--ink);letter
 .cal-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
 .cal-grid{
   display:grid;
-  grid-template-columns:96px repeat(14, minmax(24px, 1fr));
+  grid-template-columns:96px repeat(30, minmax(22px, 1fr));
   gap:2px;
   font-size:11px;
-  min-width:480px;
+  min-width:820px;
 }
 .cal-cell{
   min-width:0;height:24px;
@@ -468,7 +468,7 @@ nav.tabs button .badge{
     <div class="logo" aria-hidden="true">É26</div>
     <div>
       <h1 class="title">Suivi de l'été 2026</h1>
-      <div class="subtitle" id="periode">6 juin → 1er septembre 2026</div>
+      <div class="subtitle" id="periode">6 juin → 12 septembre 2026</div>
     </div>
     <div class="stats" id="header-stats"></div>
   </div>
@@ -708,7 +708,7 @@ async function api(op, payload) {
 let state = {
   statuts:   ['À faire','En cours','Fait','Jalon'],
   priorites: ['Faible','Moyenne','Haute','Critique'],
-  meta:      { titre: "Suivi de l'été 2026", periode: '6 juin → 1er septembre 2026' },
+  meta:      { titre: "Suivi de l'été 2026", periode: '6 juin → 12 septembre 2026' },
   taches:    [],
   conges:    [],
   chantiers: []
@@ -1209,7 +1209,7 @@ function prepConge(personnePrefill) {
   inputPersonne.style.cursor = isAdmin ? '' : 'not-allowed';
   // Bornes de période : prises de meta si dispo, sinon hardcodées
   const dmin = (state.meta && state.meta.periodeDebut) || '2026-06-06';
-  const dmax = (state.meta && state.meta.periodeFin)   || '2026-09-01';
+  const dmax = (state.meta && state.meta.periodeFin)   || '2026-09-12';
   ['c-du','c-au'].forEach(id => {
     const el = document.getElementById(id);
     el.setAttribute('min', dmin);
@@ -1294,11 +1294,11 @@ function renderCalendar() {
   const container = document.getElementById('conges-calendrier');
   if (!container) return;
 
-  // 14 jours à partir d'aujourd'hui
+  // 30 jours à partir d'aujourd'hui
   const today = new Date();
   today.setHours(0,0,0,0);
   const days = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 30; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     days.push(d);
@@ -1330,10 +1330,10 @@ function renderCalendar() {
 
   // Titre + sous-titre
   const firstLabel = days[0].getDate() + '/' + (days[0].getMonth()+1);
-  const lastLabel  = days[13].getDate() + '/' + (days[13].getMonth()+1);
+  const lastLabel  = days[29].getDate() + '/' + (days[29].getMonth()+1);
 
-  let html = '<div class="cal-title">📅 Présences sur les 14 prochains jours</div>';
-  html += '<div class="cal-sub">Du ' + firstLabel + ' au ' + lastLabel + ' — clique sur un nom dans la liste ci-dessus pour modifier ses congés (si tu en as le droit).</div>';
+  let html = '<div class="cal-title">📅 Présences sur les 30 prochains jours</div>';
+  html += '<div class="cal-sub">Du ' + firstLabel + ' au ' + lastLabel + ' — fais défiler horizontalement sur mobile pour voir toute la période.</div>';
 
   html += '<div class="cal-scroll"><div class="cal-grid">';
   // Coin vide en haut-gauche

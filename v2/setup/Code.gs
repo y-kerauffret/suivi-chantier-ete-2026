@@ -41,7 +41,7 @@ const LOCKOUT_TTL_SECONDS = 15 * 60;       // 15 min de verrouillage
 
 // Congés — bornes de la période couverte par l'outil
 const PERIODE_DEBUT = '2026-06-06';
-const PERIODE_FIN   = '2026-09-01';
+const PERIODE_FIN   = '2026-09-12';
 
 // ============================================================
 //  PROPRIÉTÉS (token + clé OpenRouter — stockés côté serveur)
@@ -383,7 +383,7 @@ function opState() {
   return {
     meta: {
       titre:        "Suivi de l'été 2026",
-      periode:      '6 juin → 1er septembre 2026',
+      periode:      '6 juin → 12 septembre 2026',
       periodeDebut: PERIODE_DEBUT,
       periodeFin:   PERIODE_FIN
     },
