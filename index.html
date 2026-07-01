@@ -137,6 +137,12 @@ nav.tabs button .ico{font-size:15px;line-height:1}
    LAYOUT
    ============================================================ */
 main{padding:16px;max-width:780px;margin:0 auto}
+/* Sur écran PC/tablette, on gagne en aération : le container s'élargit
+   raisonnablement (pas plein écran non plus, la lecture d'une seule
+   colonne au-delà de ~1100px devient inconfortable). */
+@media (min-width:900px){
+  main{max-width:1080px;padding:20px 28px}
+}
 section.tab{display:block}
 section.tab.hidden{display:none}
 
@@ -240,21 +246,21 @@ section.tab.hidden{display:none}
 .task.is-updated::before{background:#2563eb;width:6px}
 
 .freshness-badge{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:2px 8px;border-radius:var(--r-pill);
-  font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:var(--r-pill);
+  font-size:12px;font-weight:700;letter-spacing:.04em;
   text-transform:uppercase;line-height:1.4;
 }
 .freshness-badge.new{background:#dcfce7;color:#166534}
 .freshness-badge.updated{background:#dbeafe;color:#1e40af}
 
 .freshness-bar{
-  display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px;
+  display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 16px;
 }
 .freshness-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 14px;border-radius:var(--r-pill);
-  font-size:13px;font-weight:600;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border-radius:var(--r-pill);
+  font-size:14.5px;font-weight:600;
   cursor:pointer;border:none;font-family:inherit;
   transition:background .15s;
 }
