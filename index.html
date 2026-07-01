@@ -227,6 +227,43 @@ section.tab.hidden{display:none}
 .task .maj{font-size:11px;color:var(--ink-muted);margin-top:8px;display:inline-flex;align-items:center;gap:4px}
 
 /* ============================================================
+   V2.11 — Signal "nouveautés depuis ma dernière visite"
+   Une tâche créée après ma dernière connexion par un·e collègue
+   reçoit la classe .is-new (badge vert 🆕 NOUVEAU) ; une tâche
+   simplement modifiée reçoit .is-updated (badge bleu ✏️ MODIFIÉ).
+   ============================================================ */
+.task.is-new,
+.task.is-updated{box-shadow:0 3px 12px rgba(0,0,0,.08)}
+.task.is-new{border-color:#86efac;background:linear-gradient(to right,#f0fdf4 0%,var(--surface) 45%)}
+.task.is-updated{border-color:#93c5fd;background:linear-gradient(to right,#eff6ff 0%,var(--surface) 45%)}
+.task.is-new::before{background:#16a34a;width:6px}
+.task.is-updated::before{background:#2563eb;width:6px}
+
+.freshness-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:var(--r-pill);
+  font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;line-height:1.4;
+}
+.freshness-badge.new{background:#dcfce7;color:#166534}
+.freshness-badge.updated{background:#dbeafe;color:#1e40af}
+
+.freshness-bar{
+  display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px;
+}
+.freshness-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:var(--r-pill);
+  font-size:13px;font-weight:600;
+  cursor:pointer;border:none;font-family:inherit;
+  transition:background .15s;
+}
+.freshness-chip.new{background:#dcfce7;color:#166534}
+.freshness-chip.new:hover{background:#bbf7d0}
+.freshness-chip.updated{background:#dbeafe;color:#1e40af}
+.freshness-chip.updated:hover{background:#bfdbfe}
+
+/* ============================================================
    TÂCHES — en-têtes de semaine + section "terminées" repliable
    ============================================================ */
 .week-header{
@@ -878,6 +915,9 @@ document.getElementById('logout').onclick = function() {
 async function loadState() {
   const data = await api('state');
   state = Object.assign(state, data);
+  // Capture la dernière visite AVANT le premier rendu, puis pousse
+  // la référence à maintenant pour la prochaine ouverture (V2.11).
+  pumpFreshnessRef();
   refreshFilters();
   renderAll();
   renderSessionInfo();
@@ -1000,11 +1040,20 @@ function renderTaskCard(t) {
     '<button class="st-btn '+(s===t.statut?'on':'')+'" data-st="'+s+'" onclick="setStatut(\''+t.id+'\',\''+s+'\')">'+s+'</button>'
   ).join('');
   const prioCls = (t.priorite||'').toLowerCase();
-  return '<div class="task" style="--site-color:'+col+'">'+
+  // V2.11 — signalement "nouveauté depuis ma dernière visite"
+  const freshness = classifyFreshness(t);
+  const freshCls  = freshness ? ' is-' + freshness : '';
+  const freshBadge = freshness === 'new'
+    ? '<span class="freshness-badge new">🆕 Nouveau</span>'
+    : freshness === 'updated'
+      ? '<span class="freshness-badge updated">✏️ Modifié</span>'
+      : '';
+  return '<div class="task'+freshCls+'" style="--site-color:'+col+'" data-task-id="'+t.id+'">'+
     '<div class="head">'+
       '<span class="site-chip">'+escapeHtml(t.site)+'</span>'+
       '<span class="id">'+t.id+'</span>'+
       (t.priorite && t.priorite!=='Moyenne' ? '<span class="prio '+prioCls+'">'+t.priorite+'</span>':'')+
+      freshBadge+
       '<button class="edit-btn" onclick="editTache(\''+t.id+'\')">Modifier</button>'+
     '</div>'+
     '<div class="action">'+escapeHtml(t.action)+'</div>'+
@@ -1080,7 +1129,24 @@ function renderTaches() {
 
   const todayMondayStr = ymd(weekStartMonday(new Date()));
 
+  // Bandeau "nouveautés depuis ma dernière visite" (V2.11) — compté
+  // sur l'ensemble des tâches (pas seulement filtrées), volontairement,
+  // pour que l'agent voie tout ce qui a bougé même s'il a un filtre actif.
   let html = '';
+  const fresh = countFreshness();
+  if (fresh.n > 0 || fresh.u > 0) {
+    html += '<div class="freshness-bar" role="status">';
+    if (fresh.n > 0) {
+      html += '<button type="button" class="freshness-chip new" onclick="scrollToFirstFresh(\'new\')">' +
+              '🆕 ' + fresh.n + ' nouvelle' + (fresh.n > 1 ? 's' : '') + '</button>';
+    }
+    if (fresh.u > 0) {
+      html += '<button type="button" class="freshness-chip updated" onclick="scrollToFirstFresh(\'updated\')">' +
+              '✏️ ' + fresh.u + ' modifiée' + (fresh.u > 1 ? 's' : '') + '</button>';
+    }
+    html += '</div>';
+  }
+
   buckets.forEach((tasks, key) => {
     let label, cls = '';
     if (key === NODATE) {
@@ -1116,7 +1182,7 @@ window.setStatut = async function(id, s) {
   const t = state.taches.find(x=>x.id===id);
   if (!t || t.statut===s) return;
   const old = t.statut;
-  t.statut = s; t.maj = today();
+  t.statut = s; t.maj = nowTag();
   renderTaches(); renderHeaderStats(); renderChantiers();
   try {
     await api('task.update', { id: id, fields: { statut: s } });
@@ -1133,7 +1199,7 @@ window.setConsigne = async function(id, v) {
   const t = state.taches.find(x=>x.id===id);
   if (!t) return;
   const old = t.consigne;
-  t.consigne = v; t.maj = today();
+  t.consigne = v; t.maj = nowTag();
   try {
     await api('task.update', { id: id, fields: { consigne: v } });
     toast('Consigne enregistrée', 'success');
@@ -1197,8 +1263,9 @@ document.getElementById('dlg-tache').addEventListener('close', async function() 
     } else {
       try {
         const r = await api('task.create', { fields: fields });
+        const tag = nowTag();
         state.taches.push(Object.assign({
-          id: r.id, statut:'À faire', consigne:'', maj: today(), duree: null
+          id: r.id, statut:'À faire', consigne:'', maj: tag, creation: tag, duree: null
         }, fields));
         rebuildChantiers(); refreshFilters(); renderAll();
         toast('Tâche créée', 'success');
@@ -1596,6 +1663,103 @@ function parseMajDate(maj) {
   const m = String(maj).match(/^(\d{4}-\d{2}-\d{2})/);
   return m ? m[1] : '';
 }
+
+/* ============================================================
+   V2.11 — Signalement des nouveautés depuis la dernière visite
+   ============================================================
+   Principe :
+   - À chaque chargement (loadState) on lit le timestamp de la
+     précédente visite dans localStorage sous "last_seen_<login>",
+     et on l'écrase immédiatement par l'instant présent (qui sera
+     la référence à la PROCHAINE ouverture).
+   - Toutes les tâches créées/modifiées après cette référence par
+     quelqu'un d'AUTRE que soi reçoivent un badge NOUVEAU / MODIFIÉ.
+   - Une tâche à la fois nouvelle ET modifiée n'affiche que le badge
+     NOUVEAU (pas de double badge redondant).
+   - Le badge disparaît au prochain rechargement (F5) — c'est voulu :
+     le "vu" se consomme au refresh, la référence bouge avec.
+   ============================================================ */
+
+// Timestamp de référence pour la classification (null = première visite
+// jamais enregistrée → pas de flood de badges).
+let freshnessRef = null;
+
+/* Extrait le timestamp complet ISO d'un tag "AAAA-MM-JJ[THH:MM:SS] — Prénom".
+   Retourne '' si aucune date parseable. Les anciens tags sans heure
+   (V2.10 et avant) sont acceptés → interprétés comme minuit du jour. */
+function parseTagIso(tag) {
+  if (!tag) return '';
+  const s = String(tag);
+  const withTime = s.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/);
+  if (withTime) return withTime[1];
+  const dateOnly = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return dateOnly ? dateOnly[1] + 'T00:00:00' : '';
+}
+
+/* Horodatage local complet + prénom de l'utilisateur courant.
+   Utilisé pour les mises à jour optimistes (setStatut / setConsigne). */
+function nowTag() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const iso = d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) +
+              'T' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  const sess = getSession();
+  return sess && sess.login ? iso + ' — ' + sess.login : iso;
+}
+
+function lastSeenKey(login) {
+  return 'last_seen_' + normalizeLogin(login || '');
+}
+
+/* Lit la dernière visite stockée puis met à jour la référence à
+   MAINTENANT. Ne fait rien si l'utilisateur n'est pas connecté. */
+function pumpFreshnessRef() {
+  const sess = getSession();
+  if (!sess) { freshnessRef = null; return; }
+  const key = lastSeenKey(sess.login);
+  const prev = localStorage.getItem(key);
+  freshnessRef = prev || null;   // null → première visite enregistrée
+  const nowD = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const nowIso = nowD.getFullYear() + '-' + p(nowD.getMonth()+1) + '-' + p(nowD.getDate()) +
+                 'T' + p(nowD.getHours()) + ':' + p(nowD.getMinutes()) + ':' + p(nowD.getSeconds());
+  localStorage.setItem(key, nowIso);
+}
+
+/* Classe une tâche → 'new' | 'updated' | null.
+   - 'new'     si créée après ma dernière visite par quelqu'un d'autre
+   - 'updated' si modifiée après ma dernière visite par quelqu'un d'autre
+   - Priorité à 'new' quand les deux s'appliquent. */
+function classifyFreshness(t) {
+  if (!freshnessRef) return null;
+  const sess = getSession();
+  if (!sess) return null;
+  const meNorm = normalizeLogin(sess.login);
+
+  const creaIso = parseTagIso(t.creation);
+  if (creaIso && creaIso > freshnessRef) {
+    const creator = normalizeLogin(parseMajAuteur(t.creation));
+    if (creator && creator !== meNorm) return 'new';
+  }
+  const majIso = parseTagIso(t.maj);
+  if (majIso && majIso > freshnessRef) {
+    const editor = normalizeLogin(parseMajAuteur(t.maj));
+    if (editor && editor !== meNorm) return 'updated';
+  }
+  return null;
+}
+
+/* Compte {new, updated} sur l'ensemble des tâches (utilisé par le
+   bandeau au-dessus de la liste). */
+function countFreshness() {
+  let n = 0, u = 0;
+  (state.taches || []).forEach(t => {
+    const c = classifyFreshness(t);
+    if (c === 'new') n++;
+    else if (c === 'updated') u++;
+  });
+  return { n: n, u: u };
+}
 function relativeDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr + 'T00:00:00');
@@ -1706,6 +1870,17 @@ function findTaskCardEl(taskId) {
   }
   return null;
 }
+
+/* Scroll doux vers la première tâche marquée "kind" (new | updated).
+   Ajoute au passage le highlight orange existant pour attirer l'œil. */
+window.scrollToFirstFresh = function(kind) {
+  const sel = kind === 'new' ? '.task.is-new' : '.task.is-updated';
+  const card = document.querySelector('#taches-list ' + sel);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('task-highlight');
+  setTimeout(function() { card.classList.remove('task-highlight'); }, 2200);
+};
 
 window.openMessage = function(idEncoded, taskId) {
   const id = decodeURIComponent(idEncoded);

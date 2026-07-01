@@ -26,7 +26,7 @@ const SHEET_CONGES    = 'Congés';
 const SHEET_CHANTIERS = 'Chantiers';
 const SHEET_USERS     = 'Utilisateurs';
 
-const TACHES_COLS    = ['ID','Site','Action','Pilote','Equipe','Debut','Fin','Duree','Statut','Priorite','Consigne','MAJ'];
+const TACHES_COLS    = ['ID','Site','Action','Pilote','Equipe','Debut','Fin','Duree','Statut','Priorite','Consigne','MAJ','Creation'];
 const CONGES_COLS    = ['Personne','Du','Au','Remplacant','Remarque'];
 const CHANTIERS_COLS = ['Nom','Couleur','Referent','Notes'];
 const USERS_COLS     = ['Login','MotDePasse','Role','Actif'];
@@ -90,10 +90,17 @@ function readRows(sheetName, cols) {
   const sh = getSheet(sheetName);
   const lastRow = sh.getLastRow();
   if (lastRow < 2) return [];
-  const data = sh.getRange(2, 1, lastRow - 1, cols.length).getValues();
+  // Nombre de colonnes physiquement présentes dans la sheet ; peut être
+  // inférieur à cols.length si une nouvelle colonne vient d'être déclarée
+  // côté code mais pas encore matérialisée dans l'onglet (ex : ajout de
+  // "Creation" avant que setup() ne l'ait créée). On lit ce qui existe
+  // et on complète avec null pour les colonnes manquantes.
+  const readWidth = Math.min(sh.getLastColumn(), cols.length);
+  if (readWidth < 1) return [];
+  const data = sh.getRange(2, 1, lastRow - 1, readWidth).getValues();
   return data.map(row => {
     const o = {};
-    cols.forEach((c, i) => { o[c] = formatCell(row[i]); });
+    cols.forEach((c, i) => { o[c] = i < readWidth ? formatCell(row[i]) : null; });
     return o;
   });
 }
@@ -111,6 +118,17 @@ function formatCell(v) {
 function today() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+/* Horodatage complet YYYY-MM-DDTHH:MM:SS (heure locale du script,
+   généralement Europe/Paris). Utilisé pour les colonnes Creation/MAJ
+   afin de pouvoir distinguer les tâches créées/modifiées après la
+   dernière visite d'un utilisateur (V2.11 — signal nouveautés). */
+function nowIso() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}` +
+         `T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 // ============================================================
@@ -300,11 +318,13 @@ function testLogin() {
   //    Le vrai test grandeur nature se fera depuis la page web (LOT 1.4).
 }
 
-/* Étiquette mise à jour : "YYYY-MM-DD — Prénom" si un acteur est fourni,
-   sinon juste "YYYY-MM-DD". */
+/* Étiquette de mise à jour : "YYYY-MM-DDTHH:MM:SS — Prénom" si un
+   acteur est fourni, sinon juste l'horodatage. Le format horodaté (au
+   lieu de la simple date) permet au front de comparer précisément avec
+   la dernière visite de l'utilisateur pour signaler les nouveautés. */
 function actorTag(actor) {
   const a = String(actor || '').trim();
-  return a ? today() + ' — ' + a : today();
+  return a ? nowIso() + ' — ' + a : nowIso();
 }
 
 // ============================================================
@@ -402,7 +422,8 @@ function opState() {
       statut:    t.Statut || 'À faire',
       priorite:  t.Priorite || 'Moyenne',
       consigne:  t.Consigne || '',
-      maj:       t.MAJ || ''
+      maj:       t.MAJ || '',
+      creation:  t.Creation || ''
     })),
     conges: readRows(SHEET_CONGES, CONGES_COLS).map(c => ({
       personne:   c.Personne || '',
@@ -452,6 +473,10 @@ function opTaskCreate(p) {
   const sh = getSheet(SHEET_TACHES);
   const f = p.fields || {};
   const newId = 'T-' + Date.now().toString().slice(-4);
+  // Un seul tag pour Creation + MAJ à la création : même auteur, même
+  // instant. Aux modifications ultérieures, seule MAJ sera réécrite
+  // (Creation restera figée).
+  const tag = actorTag(p.actor);
   sh.appendRow([
     newId,
     f.site     || 'Divers',
@@ -464,7 +489,8 @@ function opTaskCreate(p) {
     f.statut   || 'À faire',
     f.priorite || 'Moyenne',
     f.consigne || '',
-    actorTag(p.actor)
+    tag,   // MAJ
+    tag    // Creation
   ]);
   return { ok: true, id: newId };
 }
@@ -646,13 +672,38 @@ function setup() {
   });
 
   // 2. En-têtes corrects ?
+  //    Si les en-têtes déjà présents matchent le début de `expected`
+  //    et qu'il ne manque que des colonnes en fin (ou qu'elles sont
+  //    vides), on les crée automatiquement. Sinon on remonte l'erreur
+  //    et on ne touche à rien (pas de renommage silencieux).
   function checkHeaders(name, expected) {
     const sh = findSheet(name);
     if (!sh) return;
-    const headers = sh.getRange(1, 1, 1, expected.length).getValues()[0];
-    const mismatch = expected.filter((h, i) => headers[i] !== h);
-    if (mismatch.length === 0) ok.push('En-têtes OK : ' + name);
-    else ko.push('En-têtes incorrects pour ' + name + ' (attendu : ' + expected.join(', ') + ' / lu : ' + headers.join(', ') + ')');
+    const physCols = sh.getLastColumn();
+    const readWidth = Math.max(physCols, expected.length);
+    const raw = readWidth > 0
+      ? sh.getRange(1, 1, 1, readWidth).getValues()[0]
+      : new Array(expected.length).fill('');
+    const headers = raw.slice(0, expected.length);
+
+    // Cas 1 : tout matche déjà, rien à faire
+    const allMatch = expected.every((h, i) => headers[i] === h);
+    if (allMatch) { ok.push('En-têtes OK : ' + name); return; }
+
+    // Cas 2 : les colonnes présentes matchent le début d'`expected`,
+    //         il ne manque que des colonnes vides à droite → on complète
+    const firstDiff = expected.findIndex((h, i) => headers[i] !== h);
+    const beforeOK  = firstDiff === -1 || expected.slice(0, firstDiff).every((h, i) => headers[i] === h);
+    const afterEmpty = headers.slice(firstDiff).every(h => h === '' || h == null);
+    if (beforeOK && afterEmpty) {
+      const toAdd = expected.slice(firstDiff);
+      sh.getRange(1, firstDiff + 1, 1, toAdd.length).setValues([toAdd]);
+      ok.push('En-têtes complétés pour ' + name + ' : ajout de ' + toAdd.join(', '));
+      return;
+    }
+
+    // Cas 3 : mismatch réel — on ne modifie rien
+    ko.push('En-têtes incorrects pour ' + name + ' (attendu : ' + expected.join(', ') + ' / lu : ' + headers.join(', ') + ')');
   }
   checkHeaders(SHEET_TACHES, TACHES_COLS);
   checkHeaders(SHEET_CONGES, CONGES_COLS);
